@@ -1,0 +1,147 @@
+/* Layout: full-width header bar and banner; all text in one centered column. */
+:root {
+  --bg: #f6f0e6;        /* cream */
+  --ink: #2b1d14;       /* dark roast */
+  --muted: #7a6656;
+  --rule: #e2d6c4;
+  --accent: #8a5a36;    /* coffee brown: header bar, links, next date */
+  --on-accent: #f6f0e6;
+  --maxw: 880px;
+  --gutter: 24px;
+  --f-head: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.inner {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+
+/* Header bar */
+.site-header { background: var(--accent); }
+.site-header .inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 24px;
+  padding-block: 12px;
+}
+.site-name {
+  color: var(--on-accent);
+  font-family: var(--f-head);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+.site-name:hover { text-decoration: none; }
+.site-nav { display: flex; gap: 22px; font-size: 15px; }
+.site-nav a { color: var(--on-accent); text-underline-offset: 4px; }
+.site-nav a[aria-current="page"] { text-decoration: underline; }
+.site-header a:focus-visible { outline-color: var(--on-accent); }
+
+/* Banner */
+.banner {
+  display: block;
+  width: 100%;
+  height: clamp(180px, 30vw, 380px);
+  object-fit: cover;
+  object-position: 50% 45%;
+  filter: grayscale(1);
+}
+
+/* Main content */
+main.inner {
+  display: grid;
+  gap: 36px;
+  padding-block: 36px 48px;
+}
+h1, h2 {
+  font-family: var(--f-head);
+  font-weight: 600;
+  text-wrap: balance;
+  margin: 0;
+}
+h1 { font-size: 30px; line-height: 1.2; margin-bottom: 12px; }
+h2 {
+  font-size: 22px;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+}
+p { margin: 0 0 12px; }
+p:last-child { margin-bottom: 0; }
+.lede { font-size: 19px; line-height: 1.5; text-wrap: pretty; }
+
+/* Session details */
+.meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 28px;
+  margin: 0;
+}
+.meta dt { color: var(--muted); font-size: 14px; padding-top: 2px; }
+.meta dd { margin: 0; font-weight: 500; }
+#next-date { color: var(--accent); }
+#next-rel { color: var(--muted); font-weight: 400; margin-left: 6px; }
+#next-rel.live {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+}
+
+/* Paper list */
+.paper-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+.paper-list li { display: grid; gap: 2px; }
+.paper-id { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.paper-title { font-family: var(--f-head); font-weight: 600; font-size: 18px; line-height: 1.35; }
+.paper-authors { color: var(--muted); font-size: 14px; }
+.demo-tag {
+  margin-left: 10px;
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--muted);
+  font-family: var(--f-body);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 4px;
+}
+.demo-note { margin-top: 14px; color: var(--muted); font-size: 13px; font-style: italic; }
+
+/* Footer */
+.site-footer { border-top: 1px solid var(--rule); color: var(--muted); font-size: 13px; }
+.site-footer .inner { padding-block: 18px 28px; }
+
+@media (max-width: 560px) {
+  :root { --gutter: 16px; }
+  .meta { grid-template-columns: 1fr; gap: 0; }
+  .meta dd { margin-bottom: 10px; }
+}
