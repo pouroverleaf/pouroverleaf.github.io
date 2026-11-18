@@ -126,10 +126,55 @@ function getDotSprite() {
 
 // Pins: a stem standing off the surface with a round head, plus a flat ring at the base used for the selection pulse.
 const PIN_H = 0.05;
-const stemGeo = new THREE.CylinderGeometry(0.0035, 0.006, PIN_H, 8);
+// Unit stem along +Z from 0 to 1; each pin scales z to its length and rotates toward its head.
+const stemGeo = new THREE.CylinderGeometry(0.0035, 0.006, 1, 8);
 stemGeo.rotateX(Math.PI / 2);
-stemGeo.translate(0, 0, PIN_H / 2);
+stemGeo.translate(0, 0, 0.5);
 const headGeo = new THREE.SphereGeometry(0.015, 16, 12);
+// Pins whose heads would overlap are clustered. Heads in a cluster fan out around the cluster
+// centre, six to a ring; when a ring is full the next six sit one layer higher on taller stems.
+const CLUSTER_ANGLE = 0.04; // rad between points that count as one cluster
+const RING_R = 0.036; // tangential radius of a head ring
+const RING_N = 6;
+const LAYER_H = 0.038; // extra stem height per layer
+
+function clusterPoints(items) {
+  const clusters = [];
+  for (const it of items) {
+    let best = null, bestD = CLUSTER_ANGLE;
+    for (const c of clusters) {
+      const d = c.centre.angleTo(it.n);
+      if (d < bestD) { best = c; bestD = d; }
+    }
+    if (best) {
+      best.items.push(it);
+      best.centre.add(it.n).normalize();
+    } else clusters.push({ centre: it.n.clone(), items: [it] });
+  }
+  return clusters;
+}
+
+// World position of each head. Singletons sit straight above their point.
+function headPositions(items) {
+  const out = new Map();
+  for (const c of clusterPoints(items)) {
+    if (c.items.length === 1) {
+      out.set(c.items[0], c.items[0].n.clone().multiplyScalar(1 + PIN_H));
+      continue;
+    }
+    const up = c.centre;
+    const e1 = new THREE.Vector3(0, 1, 0).cross(up).normalize();
+    if (e1.lengthSq() < 1e-6) e1.set(1, 0, 0);
+    const e2 = up.clone().cross(e1).normalize();
+    c.items.forEach((it, j) => {
+      const layer = Math.floor(j / RING_N), slot = j % RING_N;
+      const a = (slot / RING_N) * Math.PI * 2 + layer * (Math.PI / RING_N);
+      const h = PIN_H + layer * LAYER_H;
+      out.set(it, up.clone().multiplyScalar(1 + h).addScaledVector(e1, RING_R * Math.cos(a)).addScaledVector(e2, RING_R * Math.sin(a)));
+    });
+  }
+  return out;
+}
 const ringGeo = new THREE.RingGeometry(0.014, 0.019, 32);
 const hitGeo = new THREE.SphereGeometry(0.04, 10, 8);
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
@@ -153,7 +198,9 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-    camera.position.copy(latLonToVec3(20, 10, 5.7)); // canvas is 112vh tall; 5.7 puts the sphere at ~58% of the viewport height
+    // Debug: ?look=lat,lon,distance starts the camera over a point.
+    const look = (new URLSearchParams(location.search).get('look') || '20,10,5.7').split(',').map(Number);
+    camera.position.copy(latLonToVec3(look[0], look[1], look[2] || 5.7)); // canvas is 112vh tall; 5.7 puts the sphere at ~58% of the viewport height
     scene.add(camera);
 
     scene.add(new THREE.HemisphereLight('#ffffff', '#EFE6D8', 3.0)); // near-flat sphere; the sun mostly shades the pins
@@ -359,22 +406,30 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
       },
       setPoints(pts, col) {
         clearMarkers();
-        for (const point of pts || []) {
-          const n = latLonToVec3(point.lat, point.lon);
+        const items = (pts || []).map((point) => ({ point, n: latLonToVec3(point.lat, point.lon) }));
+        const heads = headPositions(items);
+        for (const it of items) {
+          const { point, n } = it;
           const group = new THREE.Group();
           group.position.copy(n).multiplyScalar(1.003);
           group.quaternion.setFromUnitVectors(Z_AXIS, n);
+          // head position in the pin's local frame (+Z = outward)
+          const local = heads.get(it).clone().sub(group.position).applyQuaternion(group.quaternion.clone().invert());
+          const len = local.length();
+          const dir = local.clone().normalize();
           const pc = point.color || col;
           const stem = new THREE.Mesh(stemGeo, new THREE.MeshStandardMaterial({ color: '#1D2847', roughness: 0.6 }));
+          stem.quaternion.setFromUnitVectors(Z_AXIS, dir);
+          stem.scale.z = len;
           const head = new THREE.Mesh(headGeo, new THREE.MeshStandardMaterial({ color: pc, roughness: 0.45 }));
-          head.position.z = PIN_H;
+          head.position.copy(local);
           const ring = new THREE.Mesh(
             ringGeo,
             new THREE.MeshBasicMaterial({ color: pc, side: THREE.DoubleSide, transparent: true, opacity: 0.6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
           );
           ring.position.z = 0.0005;
           const hit = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({ visible: false }));
-          hit.position.z = PIN_H * 0.7;
+          hit.position.copy(local);
           group.add(stem, head, ring, hit);
           markerRoot.add(group);
           const marker = { point, group, stem, head, ring, hit };
