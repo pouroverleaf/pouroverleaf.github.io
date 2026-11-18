@@ -1,6 +1,6 @@
 ---
 name: ryan
-title: president
+title: gravity believer
 color: #710318
 img: /img/team/ryan.jpg
 ---

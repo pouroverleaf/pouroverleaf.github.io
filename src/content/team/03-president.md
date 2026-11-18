@@ -1,6 +1,6 @@
 ---
 name: marnix
-title: president
+title: iroh stan
 color: #105723
 img: /img/team/marnix.jpg
 ---
