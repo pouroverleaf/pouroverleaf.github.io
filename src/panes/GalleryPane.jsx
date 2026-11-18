@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { GALLERY } from '../lib/content';
 
 // Cover-flow carousel. `index` is the selected photo (unbounded; wraps). Wheel/arrow input lives in App.jsx.
+// Click a side photo to centre it; click the centre photo to open it full-size. Esc or a click closes that.
 const SIDE = 3; // photos shown on each side of the centre
 const N = GALLERY.length;
 const mod = (n, m) => ((n % m) + m) % m;
@@ -12,6 +14,18 @@ export default function GalleryPane({ active, index, onSelect }) {
   const sim = useRef({ pos: index, last: 0 });
   const target = useRef(index);
   target.current = index;
+  const [zoomed, setZoomed] = useState(false);
+
+  useEffect(() => {
+    if (!active) setZoomed(false);
+  }, [active]);
+
+  useEffect(() => {
+    if (!zoomed) return;
+    const onKey = (e) => { if (e.key === 'Escape') setZoomed(false); };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, [zoomed]);
 
   useEffect(() => {
     if (!N) return;
@@ -64,13 +78,26 @@ export default function GalleryPane({ active, index, onSelect }) {
             ref={(el) => (els.current[i] = el)}
             className={`photo${mod(index, N) === i ? ' is-centre' : ''}`}
             role="listitem"
-            onClick={() => onSelect(index + wrap(i - index))}
+            onClick={() => {
+              const d = wrap(i - index);
+              if (d === 0) setZoomed(true);
+              else onSelect(index + d);
+            }}
           >
             <img src={g.src} alt={g.alt} loading={Math.abs(wrap(i - index)) <= 1 ? 'eager' : 'lazy'} draggable="false" />
           </figure>
         ))}
       </div>
-      <p className="fine flow-pos">{mod(index, N) + 1} / {N} · scroll or ← → to browse</p>
+      <p className="fine flow-pos">{mod(index, N) + 1} / {N} · scroll or ← → to browse · click to enlarge</p>
+      {zoomed && createPortal(
+        <div className="lightbox" onClick={() => setZoomed(false)} role="dialog" aria-label="photo">
+          <figure className="photo">
+            <img src={GALLERY[mod(index, N)].src} alt={GALLERY[mod(index, N)].alt} draggable="false" />
+          </figure>
+          <p className="fine">{mod(index, N) + 1} / {N} · scroll or ← → to browse · click or esc to close</p>
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

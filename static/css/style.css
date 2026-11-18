@@ -421,6 +421,21 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
   -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.18));
 }
 .photo img { display: block; height: 52vh; width: auto; max-width: 62vw; object-fit: contain; border-radius: 2px; user-select: none; }
-.photo.is-centre { cursor: default; box-shadow: 0 0 0 3px var(--yellow), 0 3px 0 3px rgba(29, 40, 71, 0.18); }
+.photo.is-centre { box-shadow: 0 0 0 3px var(--yellow), 0 3px 0 3px rgba(29, 40, 71, 0.18); }
 .flow-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); }
 .gallery .empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1rem;
+  background: rgba(246, 240, 230, 0.94);
+  cursor: zoom-out;
+  animation: rise 0.25s var(--ease);
+}
+.lightbox .photo { position: static; transform: none; cursor: zoom-out; -webkit-box-reflect: none; }
+.lightbox .photo img { height: auto; max-height: 84vh; max-width: 90vw; }
+.photo.is-centre { cursor: zoom-in; }
