@@ -69,3 +69,10 @@ export const LAYERS = sorted(placeFiles)
     return { key, label: meta.label || key, color: meta.color, points: parseTable(body).map((p, i) => ({ ...p, id: `${key}-${i + 1}` })) };
   })
   .sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+
+// gallery/*.{jpg,jpeg,png,webp,gif}: photos for the carousel, ordered by filename. alt = filename minus the number prefix.
+const galleryFiles = import.meta.glob('../content/gallery/*.{jpg,jpeg,png,webp,gif}', { query: '?url', import: 'default', eager: true });
+export const GALLERY = sorted(galleryFiles).map(([path, src]) => {
+  const id = path.split('/').pop().replace(/\.[^.]+$/, '');
+  return { id, src, alt: id.replace(/^\d+[-_]?/, '').replace(/[-_]+/g, ' ') };
+});

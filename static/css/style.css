@@ -394,3 +394,33 @@ html[data-pane="home"] .cue-down { right: auto; left: 50%; transform: translateX
   .log, .wheel-pos { left: 4vw; right: 4vw; }
   .log { top: 52vh; bottom: 2vh; }
 }
+
+/* gallery: cover-flow carousel */
+html[data-pane="gallery"] .percolation { opacity: 0.5; }
+.gallery { position: absolute; inset: 0; }
+.flow {
+  position: absolute;
+  inset: 0;
+  perspective: 1400px;
+  perspective-origin: 50% 46%;
+  overflow: hidden;
+}
+.photo {
+  position: absolute;
+  left: 50%; top: 46%;
+  margin: 0;
+  padding: 4px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 0 3px 0 rgba(29, 40, 71, 0.18);
+  cursor: pointer;
+  will-change: transform;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.18));
+}
+.photo img { display: block; height: 52vh; width: auto; max-width: 62vw; object-fit: contain; border-radius: 2px; user-select: none; }
+.photo.is-centre { cursor: default; box-shadow: 0 0 0 3px var(--yellow), 0 3px 0 3px rgba(29, 40, 71, 0.18); }
+.flow-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); }
+.gallery .empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }

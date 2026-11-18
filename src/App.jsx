@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PANES, COMMIT, goTo, setDrag, release, getTransition, position, mix, initFromHash, usePaneIndex } from './lib/panes';
 import { byTag } from './lib/logs';
+import { GALLERY } from './lib/content';
 import { MODES } from './lib/layout';
 import Percolation, { setPercolationMask } from './components/Percolation';
 import Roundtable from './components/Roundtable';
@@ -8,9 +9,12 @@ import IndexBar, { ScrollCue } from './components/IndexBar';
 import HomePane from './panes/HomePane';
 import AboutPane from './panes/AboutPane';
 import ResearchPane from './panes/ResearchPane';
+import GalleryPane from './panes/GalleryPane';
 
 initFromHash();
 const mod = (n, m) => ((n % m) + m) % m;
+const LOGS_PANE = 3;
+const GALLERY_PANE = 4;
 // Wheel pixels for a full pane of drag before saturation. ~150px of wheel reaches the commit point.
 const DRAG_PX = 260;
 const dragFromWheel = (acc) => Math.sign(acc) * 1.15 * (1 - Math.exp(-Math.abs(acc) / DRAG_PX));
@@ -20,18 +24,21 @@ export default function App() {
   const index = usePaneIndex();
   const [tag, setTag] = useState(null);
   const [logIndex, setLogIndex] = useState(0);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const logRef = useRef(0);
+  const photoRef = useRef(0);
   const paneEls = useRef([]);
   const logs = byTag(tag);
   const N = logs.length;
   const selectLog = (j) => { logRef.current = j; setLogIndex(j); };
+  const selectPhoto = (j) => { photoRef.current = j; setPhotoIndex(j); };
   const pickTag = (t) => { setTag(t); selectLog(0); };
 
   useEffect(() => {
     document.documentElement.dataset.pane = PANES[index];
-    // On research the logo is projected into the percolation where the roundtable disc was.
-    const m = MODES[3];
-    setPercolationMask(index === 3 ? { cx: m.cx, cy: m.cy, r: m.rim } : null);
+    // On logs the logo is projected into the percolation where the roundtable disc was.
+    const m = MODES[LOGS_PANE];
+    setPercolationMask(index === LOGS_PANE ? { cx: m.cx, cy: m.cy, r: m.rim } : null);
   }, [index]);
 
   // Slide the HTML panes from the continuous pane position every frame.
@@ -52,8 +59,9 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let acc = 0, cardAcc = 0, lastEvent = 0, armed = true, releaseTimer = 0, touchY = 0, touching = false;
-    const step = (n) => selectLog(logRef.current + n);
+    let acc = 0, itemAcc = 0, lastEvent = 0, armed = true, releaseTimer = 0, touchX = 0, touchY = 0, touching = false;
+    const stepLog = (n) => selectLog(logRef.current + n);
+    const stepPhoto = (n) => GALLERY.length && selectPhoto(photoRef.current + n);
 
     const commitOrRelease = () => {
       releaseTimer = 0;
@@ -61,6 +69,14 @@ export default function App() {
       if (Math.abs(getTransition().offset) >= COMMIT) armed = false;
       release();
       acc = 0;
+    };
+
+    // Wheel on logs/gallery browses items, 80px per step, in whichever axis moves most.
+    const browse = (e, step) => {
+      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      itemAcc += d;
+      while (itemAcc > 80) { step(1); itemAcc -= 80; }
+      while (itemAcc < -80) { step(-1); itemAcc += 80; }
     };
 
     const onWheel = (e) => {
@@ -71,15 +87,10 @@ export default function App() {
       const now = performance.now();
       const fresh = now - lastEvent > 200;
       lastEvent = now;
-      if (fresh) { armed = true; acc = s.offset ? wheelFromDrag(s.offset) : 0; cardAcc = 0; }
+      if (fresh) { armed = true; acc = s.offset ? wheelFromDrag(s.offset) : 0; itemAcc = 0; }
       if (s.animating || !armed) return;
-      if (s.index === 3) {
-        // research: the wheel only browses logs. Leave with ↑ team, the index bar, Esc or PageUp.
-        cardAcc += e.deltaY;
-        while (cardAcc > 80) { step(1); cardAcc -= 80; }
-        while (cardAcc < -80) { step(-1); cardAcc += 80; }
-        return;
-      }
+      if (s.index === LOGS_PANE) return browse(e, stepLog);
+      if (s.index === GALLERY_PANE) return browse(e, stepPhoto);
       acc += e.deltaY;
       setDrag(dragFromWheel(acc));
       clearTimeout(releaseTimer);
@@ -92,29 +103,37 @@ export default function App() {
       const s = getTransition();
       const down = ['ArrowDown', 'PageDown', ' '].includes(e.key);
       const up = ['ArrowUp', 'PageUp'].includes(e.key);
-      if (e.key === 'Escape' && s.index === 3) return goTo(2);
+      const right = e.key === 'ArrowRight', left = e.key === 'ArrowLeft';
+      if (e.key === 'Escape' && s.index === LOGS_PANE) return goTo(2);
+      if (s.index === GALLERY_PANE && (left || right)) { e.preventDefault(); return stepPhoto(right ? 1 : -1); }
       if (!down && !up) return;
       e.preventDefault();
-      if (s.index === 3) {
+      if (s.index === LOGS_PANE) {
         if (e.key === 'PageUp') goTo(2);
-        else step(down ? 1 : -1);
+        else stepLog(down ? 1 : -1);
       } else goTo(s.index + (down ? 1 : -1));
     };
 
-    const onTouchStart = (e) => { touchY = e.touches[0].clientY; touching = true; };
+    const onTouchStart = (e) => { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; touching = true; };
     const onTouchMove = (e) => {
       if (!touching) return;
       const s = getTransition();
-      if (s.index === 3) return;
+      if (s.index === LOGS_PANE || s.index === GALLERY_PANE) return;
       e.preventDefault();
       setDrag((touchY - e.touches[0].clientY) / (innerHeight * 0.6));
     };
     const onTouchEnd = (e) => {
       touching = false;
       const s = getTransition();
-      if (s.index === 3) {
-        const dy = e.changedTouches[0].clientY - touchY;
-        if (Math.abs(dy) > 50) step(dy < 0 ? 1 : -1);
+      const dx = e.changedTouches[0].clientX - touchX;
+      const dy = e.changedTouches[0].clientY - touchY;
+      if (s.index === LOGS_PANE) {
+        if (Math.abs(dy) > 50) stepLog(dy < 0 ? 1 : -1);
+        return;
+      }
+      if (s.index === GALLERY_PANE) {
+        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) stepPhoto(dx < 0 ? 1 : -1);
+        else if (dy > 80) goTo(s.index - 1);
         return;
       }
       release();
@@ -148,7 +167,8 @@ export default function App() {
       {pane(0, <HomePane active={index === 0} />)}
       {pane(1, <AboutPane />)}
       {pane(2, null)}
-      {pane(3, <ResearchPane log={current} n={N ? mod(logIndex, N) : 0} total={N} tag={tag} onTag={pickTag} />)}
+      {pane(LOGS_PANE, <ResearchPane log={current} n={N ? mod(logIndex, N) : 0} total={N} tag={tag} onTag={pickTag} />)}
+      {pane(GALLERY_PANE, <GalleryPane active={index === GALLERY_PANE} index={photoIndex} onSelect={selectPhoto} />)}
       <Roundtable logs={logs} logIndex={logIndex} onSelectLog={selectLog} />
       <IndexBar />
       <ScrollCue />

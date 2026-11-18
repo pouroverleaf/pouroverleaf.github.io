@@ -8,7 +8,7 @@ One page, four panes. Wheel/trackpad drags the pane with rubber-band
 resistance: let go early and it springs back, push past ~40% and it commits
 with a short overshoot. Arrow keys, the index bar on the left, and the ↑/↓
 buttons (bottom centre on home, top right elsewhere) also move between panes.
-Hash routes: `#home #about #team #logs`.
+Hash routes: `#home #about #team #logs #gallery`.
 
 | # | pane     | what is on it                                                                 |
 |---|----------|-------------------------------------------------------------------------------|
@@ -16,11 +16,12 @@ Hash routes: `#home #about #team #logs`.
 | 2 | about    | text flowed into the side profile of a Hario Switch (cone, neck, flange, base) |
 | 3 | team     | ASCII roundtable with committee cards around it, facing the centre            |
 | 4 | logs     | cards spread into a cyclic log wheel on the left, log text on the right       |
+| 5 | gallery  | looping cover-flow photo carousel                                             |
 
 An animated site-percolation lattice runs behind everything. On the logs
 pane the club logo is projected into it (p = 0.710 inside the logo, 0.318 outside).
-On logs, scrolling only turns the wheel; leave with ↑ team, the index bar,
-Esc or PageUp.
+On logs and gallery, scrolling only browses the items; leave with the ↑/↓
+buttons, the index bar, or the keyboard (↑/↓ on gallery, Esc or PageUp on logs).
 
 ## Editing content
 
@@ -37,6 +38,8 @@ places/labs.md      body: a markdown table, one point per row:
 places/cafes.md     name | place | lat | lon | (process | variety | altitude | notes) or (note)
 logs/*.md           research logs. frontmatter: title, date (YYYY-MM-DD), author, tags
                     tags: coffee, research, meta research, fun (filter UI is off for now)
+gallery/*.jpg       photos for the carousel, ordered by filename (jpg/png/webp/gif). Keep them
+                    under ~300 KB each; they ship in the bundle.
 site.md             frontmatter: instagram, instagram_url (link is off for now)
 ```
 
@@ -71,7 +74,7 @@ src/components/Percolation.jsx background lattice, logo mask on logs
 src/components/AsciiDisc.jsx   the roundtable drawn in characters from /img/Logo.png
 src/components/Roundtable.jsx  committee cards and the log wheel, positioned per frame
 src/components/IndexBar.jsx    left index (menu) and the ↑/↓ pane buttons
-src/panes/*.jsx                per-pane HTML
+src/panes/*.jsx                per-pane HTML (GalleryPane.jsx is the cover-flow carousel)
 static/css/style.css           one stylesheet. Pokémon-style text boxes are `.box`
 ```
 
