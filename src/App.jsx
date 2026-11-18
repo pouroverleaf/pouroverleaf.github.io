@@ -99,12 +99,13 @@ export default function App() {
     };
 
     // Keys: arrows / PageUp / PageDown / space, plus vim: j k h l, gg (first pane), G (last pane).
+    // Shift+↓/↑ or J/K always change pane, even on logs where plain j/k browse entries.
     let lastG = 0;
     const onKey = (e) => {
       if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = getTransition();
-      const down = ['ArrowDown', 'PageDown', ' ', 'j'].includes(e.key);
-      const up = ['ArrowUp', 'PageUp', 'k'].includes(e.key);
+      const down = ['ArrowDown', 'PageDown', ' ', 'j', 'J'].includes(e.key);
+      const up = ['ArrowUp', 'PageUp', 'k', 'K'].includes(e.key);
       const right = e.key === 'ArrowRight' || e.key === 'l', left = e.key === 'ArrowLeft' || e.key === 'h';
       if (e.key === 'Escape' && s.index === LOGS_PANE) return goTo(2);
       if (e.key === 'G') { e.preventDefault(); return goTo(PANES.length - 1); }
@@ -117,10 +118,10 @@ export default function App() {
       if (s.index === GALLERY_PANE && (left || right)) { e.preventDefault(); return stepPhoto(right ? 1 : -1); }
       if (!down && !up) return;
       e.preventDefault();
-      if (s.index === LOGS_PANE) {
-        if (e.key === 'PageUp') goTo(2);
-        else stepLog(down ? 1 : -1);
-      } else goTo(s.index + (down ? 1 : -1));
+      // On logs, plain up/down browse entries; Shift (⇧↓ ⇧↑ J K), PageUp/PageDown move panes.
+      const paneKey = e.shiftKey || e.key === 'PageUp' || e.key === 'PageDown';
+      if (s.index === LOGS_PANE && !paneKey) return stepLog(down ? 1 : -1);
+      goTo(s.index + (down ? 1 : -1));
     };
 
     const onTouchStart = (e) => { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; touching = true; };

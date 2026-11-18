@@ -8,7 +8,9 @@ One page, four panes. Wheel/trackpad drags the pane with rubber-band
 resistance: let go early and it springs back, push past ~40% and it commits
 with a short overshoot. The index bar on the left, the ↑/↓ buttons (bottom centre on home, top/bottom
 right elsewhere), and the keyboard also move between panes: arrows, PageUp/Down,
-space, or vim keys (j/k panes or items, h/l photos, gg first pane, G last).
+space, or vim keys (j/k panes, h/l photos, gg first pane, G last). On logs,
+plain ↓/↑ and j/k browse entries; hold Shift (⇧↓, ⇧↑, J, K) or use
+PageUp/PageDown to change pane.
 Hash routes: `#home #about #team #logs #gallery`.
 
 | # | pane     | what is on it                                                                 |
@@ -22,7 +24,7 @@ Hash routes: `#home #about #team #logs #gallery`.
 An animated site-percolation lattice runs behind everything. On the logs
 pane the club logo is projected into it (p = 0.710 inside the logo, 0.318 outside).
 On logs and gallery, scrolling only browses the items; leave with the ↑/↓
-buttons, the index bar, or the keyboard (↑/↓ on gallery, Esc or PageUp on logs).
+buttons, the index bar, or the keyboard (Shift+↑/↓, J/K, PageUp/PageDown; Esc on logs).
 
 ## Editing content
 
