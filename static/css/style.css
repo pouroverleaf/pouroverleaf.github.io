@@ -393,11 +393,14 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
 .flow {
   position: absolute;
   top: 0; bottom: 0;
-  left: var(--gx); right: var(--gr); /* clipped to the frame so photos never run under the index bar */
-  perspective: 1400px;
-  perspective-origin: 50% 46%;
+  left: var(--gx); right: var(--gr);
+  /* Clip to the frame so photos never run under the index bar. 3D children escape plain
+     overflow:hidden in WebKit, so clip-path and a stacking transform are set as well. */
   overflow: hidden;
+  clip-path: inset(0);
+  transform: translateZ(0);
 }
+.flow-stage { position: absolute; inset: 0; perspective: 1400px; perspective-origin: 50% 46%; }
 .photo {
   position: absolute;
   left: 50%; top: 46%;

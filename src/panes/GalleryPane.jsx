@@ -4,7 +4,7 @@ import { GALLERY } from '../lib/content';
 
 // Cover-flow carousel. `index` is the selected photo (unbounded; wraps). Wheel/arrow input lives in App.jsx.
 // Click a side photo to centre it; click the centre photo to open it full-size. Esc or a click closes that.
-const SIDE = 3; // photos shown on each side of the centre
+const SIDE = 2; // photos shown on each side of the centre
 const N = GALLERY.length;
 const mod = (n, m) => ((n % m) + m) % m;
 const wrap = (d) => mod(d + N / 2, N) - N / 2; // shortest signed distance around the loop
@@ -71,7 +71,8 @@ export default function GalleryPane({ active, index, onSelect }) {
 
   return (
     <div className="gallery">
-      <div className="flow" role="list">
+      <div className="flow">
+        <div className="flow-stage" role="list">
         {GALLERY.map((g, i) => (
           <figure
             key={g.id}
@@ -87,6 +88,7 @@ export default function GalleryPane({ active, index, onSelect }) {
             <img src={g.src} alt={g.alt} loading={Math.abs(wrap(i - index)) <= 1 ? 'eager' : 'lazy'} draggable="false" />
           </figure>
         ))}
+        </div>
       </div>
       <p className="fine flow-pos">{mod(index, N) + 1} / {N}</p>
       {zoomed && createPortal(
