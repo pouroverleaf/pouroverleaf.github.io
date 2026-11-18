@@ -17,7 +17,7 @@ Hash routes: `#home #about #team #logs #gallery`.
 | 2 | about    | text flowed into the side profile of a Hario Switch (cone, neck, flange, base) |
 | 3 | team     | ASCII roundtable with committee cards around it, facing the centre            |
 | 4 | logs     | cards spread into a cyclic log wheel on the left, log text on the right       |
-| 5 | gallery  | looping cover-flow photo carousel                                             |
+| 5 | gallery  | one large photo with a thumbnail bar; wheel, h/l or thumbnails to browse      |
 
 An animated site-percolation lattice runs behind everything. On the logs
 pane the club logo is projected into it (p = 0.710 inside the logo, 0.318 outside).
@@ -75,7 +75,7 @@ src/components/Percolation.jsx background lattice, logo mask on logs
 src/components/AsciiDisc.jsx   the roundtable drawn in characters from /img/Logo.png
 src/components/Roundtable.jsx  committee cards and the log wheel, positioned per frame
 src/components/IndexBar.jsx    left index (menu) and the ↑/↓ pane buttons
-src/panes/*.jsx                per-pane HTML (GalleryPane.jsx is the cover-flow carousel)
+src/panes/*.jsx                per-pane HTML
 static/css/style.css           one stylesheet. Pokémon-style text boxes are `.box`
 ```
 

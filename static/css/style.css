@@ -385,44 +385,51 @@ html[data-pane="home"] .cue-down { right: auto; left: 50%; transform: translateX
   .tag-tabs { left: 1.2rem; top: 4.5rem; }
   .log, .wheel-pos { left: 4vw; right: 4vw; }
   .log { top: 52vh; bottom: 2vh; }
-  .flow { left: 0; right: 0; }
-  .photo img { max-width: 80vw; }
+  .photo img { max-width: 92vw; }
 }
 
-/* gallery: cover-flow carousel */
+/* gallery: one big photo, thumbnail bar under it */
 html[data-pane="gallery"] .percolation { opacity: 0.5; }
-.frame { transition: opacity var(--slide) var(--ease); }
-html[data-pane="gallery"] .frame { opacity: 0; }
 .gallery { position: absolute; inset: 0; }
-.flow {
+.stage {
   position: absolute;
-  top: 0; bottom: 0;
-  left: 8rem; right: 8rem; /* symmetric about the viewport centre; clears the index labels, crosses the frame lines (hidden on this pane) */
-  /* Clip so photos never run under the index bar. 3D children escape plain
-     overflow:hidden in WebKit, so clip-path and a stacking transform are set as well. */
-  overflow: hidden;
-  clip-path: inset(0);
-  transform: translateZ(0);
+  left: 0; right: 0;
+  top: 10vh; height: 62vh;
+  display: grid;
+  place-items: center;
 }
-.flow-stage { position: absolute; inset: 0; perspective: 1400px; perspective-origin: 50% 46%; }
 .photo {
-  position: absolute;
-  left: 50%; top: 46%;
   margin: 0;
   padding: 4px;
   background: var(--paper);
   border: 3px solid var(--ink);
   border-radius: 6px;
-  box-shadow: 0 3px 0 rgba(29, 40, 71, 0.18);
-  cursor: pointer;
-  will-change: transform;
-  transform-style: preserve-3d;
-  backface-visibility: hidden;
-  -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.18));
+  cursor: zoom-in;
+  animation: fade 0.25s var(--ease);
 }
-.photo img { display: block; width: auto; height: auto; max-height: 50vh; max-width: calc((100vw - 16rem) * 0.6); border-radius: 2px; user-select: none; }
-.photo.is-centre { box-shadow: 0 0 0 3px var(--yellow), 0 3px 0 3px rgba(29, 40, 71, 0.18); }
-.flow-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); white-space: nowrap; }
+@keyframes fade { from { opacity: 0; } }
+.photo img { display: block; width: auto; height: auto; max-height: calc(62vh - 14px); max-width: 74vw; border-radius: 2px; user-select: none; }
+.strip {
+  position: absolute;
+  left: 50%; bottom: calc(var(--gy) + 0.4rem);
+  transform: translateX(-50%);
+  max-width: calc(100vw - 4rem);
+  overflow: hidden;
+}
+.strip-row { display: flex; gap: 0.5rem; width: max-content; transition: transform 0.35s var(--ease); }
+.thumb {
+  flex: none;
+  padding: 2px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+.thumb img { display: block; height: 7vh; width: auto; border-radius: 2px; }
+.thumb:hover { opacity: 1; }
+.thumb.is-selected { opacity: 1; border-color: var(--ink); box-shadow: 0 0 0 2px var(--yellow); }
+.strip-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); }
 .gallery .empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 .lightbox {
   position: fixed;
@@ -436,6 +443,5 @@ html[data-pane="gallery"] .frame { opacity: 0; }
   cursor: zoom-out;
   animation: rise 0.25s var(--ease);
 }
-.lightbox .photo { position: static; transform: none; cursor: zoom-out; -webkit-box-reflect: none; }
+.lightbox .photo { cursor: zoom-out; }
 .lightbox .photo img { max-height: 84vh; max-width: 90vw; }
-.photo.is-centre { cursor: zoom-in; }
