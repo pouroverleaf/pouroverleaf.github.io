@@ -98,13 +98,22 @@ export default function App() {
       else releaseTimer = setTimeout(commitOrRelease, 170);
     };
 
+    // Keys: arrows / PageUp / PageDown / space, plus vim: j k h l, gg (first pane), G (last pane).
+    let lastG = 0;
     const onKey = (e) => {
-      if (e.target.matches('input, textarea')) return;
+      if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = getTransition();
-      const down = ['ArrowDown', 'PageDown', ' '].includes(e.key);
-      const up = ['ArrowUp', 'PageUp'].includes(e.key);
-      const right = e.key === 'ArrowRight', left = e.key === 'ArrowLeft';
+      const down = ['ArrowDown', 'PageDown', ' ', 'j'].includes(e.key);
+      const up = ['ArrowUp', 'PageUp', 'k'].includes(e.key);
+      const right = e.key === 'ArrowRight' || e.key === 'l', left = e.key === 'ArrowLeft' || e.key === 'h';
       if (e.key === 'Escape' && s.index === LOGS_PANE) return goTo(2);
+      if (e.key === 'G') { e.preventDefault(); return goTo(PANES.length - 1); }
+      if (e.key === 'g') {
+        const now = performance.now();
+        if (now - lastG < 500) { lastG = 0; e.preventDefault(); return goTo(0); }
+        lastG = now;
+        return;
+      }
       if (s.index === GALLERY_PANE && (left || right)) { e.preventDefault(); return stepPhoto(right ? 1 : -1); }
       if (!down && !up) return;
       e.preventDefault();
@@ -163,7 +172,7 @@ export default function App() {
   return (
     <>
       <Percolation />
-      <div className="frame" aria-hidden="true"><i /><i /><i /><i /></div>
+      <div className="frame" aria-hidden="true" />
       {pane(0, <HomePane active={index === 0} />)}
       {pane(1, <AboutPane />)}
       {pane(2, null)}

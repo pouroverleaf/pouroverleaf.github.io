@@ -4,7 +4,7 @@ export default function ResearchPane({ log, n, total, tag, onTag }) {
     <div className="research">
       {log ? (
         <>
-          <p className="fine wheel-pos">{n + 1} / {total} · scroll to browse</p>
+          <p className="fine wheel-pos">{n + 1} / {total}</p>
           <article className="log box" key={log.id}>
             <header>
               <p className="log-no">No.{log.n}</p>

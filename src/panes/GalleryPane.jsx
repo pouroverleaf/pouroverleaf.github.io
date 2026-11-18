@@ -88,13 +88,13 @@ export default function GalleryPane({ active, index, onSelect }) {
           </figure>
         ))}
       </div>
-      <p className="fine flow-pos">{mod(index, N) + 1} / {N} · scroll or ← → to browse · click to enlarge</p>
+      <p className="fine flow-pos">{mod(index, N) + 1} / {N}</p>
       {zoomed && createPortal(
         <div className="lightbox" onClick={() => setZoomed(false)} role="dialog" aria-label="photo">
           <figure className="photo">
             <img src={GALLERY[mod(index, N)].src} alt={GALLERY[mod(index, N)].alt} draggable="false" />
           </figure>
-          <p className="fine">{mod(index, N) + 1} / {N} · scroll or ← → to browse · click or esc to close</p>
+          <p className="fine">{mod(index, N) + 1} / {N}</p>
         </div>,
         document.body,
       )}

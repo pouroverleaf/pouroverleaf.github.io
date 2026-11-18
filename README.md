@@ -6,8 +6,9 @@ GitHub Pages.
 
 One page, four panes. Wheel/trackpad drags the pane with rubber-band
 resistance: let go early and it springs back, push past ~40% and it commits
-with a short overshoot. Arrow keys, the index bar on the left, and the ↑/↓
-buttons (bottom centre on home, top right elsewhere) also move between panes.
+with a short overshoot. The index bar on the left, the ↑/↓ buttons (bottom centre on home, top/bottom
+right elsewhere), and the keyboard also move between panes: arrows, PageUp/Down,
+space, or vim keys (j/k panes or items, h/l photos, gg first pane, G last).
 Hash routes: `#home #about #team #logs #gallery`.
 
 | # | pane     | what is on it                                                                 |

@@ -111,14 +111,6 @@ html[data-pane="about"] .percolation, html[data-pane="team"] .percolation { opac
 .frame::before, .frame::after { content: ""; position: absolute; background: var(--line-2); }
 .frame::before { left: var(--gx); top: 0; bottom: 0; width: 1px; }
 .frame::after { right: var(--gr); top: 0; bottom: 0; width: 1px; }
-.frame i { position: absolute; width: 11px; height: 11px; color: var(--mute); }
-.frame i::before, .frame i::after { content: ""; position: absolute; background: currentColor; }
-.frame i::before { left: 5px; top: 0; width: 1px; height: 11px; }
-.frame i::after { top: 5px; left: 0; height: 1px; width: 11px; }
-.frame i:nth-child(1) { left: calc(var(--gx) - 5px); top: calc(var(--gy) - 5px); }
-.frame i:nth-child(2) { right: calc(var(--gr) - 6px); top: calc(var(--gy) - 5px); }
-.frame i:nth-child(3) { left: calc(var(--gx) - 5px); bottom: calc(var(--gy) - 5px); }
-.frame i:nth-child(4) { right: calc(var(--gr) - 6px); bottom: calc(var(--gy) - 5px); }
 .pane { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
 .cards { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
 .index { z-index: 5; }
@@ -400,7 +392,8 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
 .gallery { position: absolute; inset: 0; }
 .flow {
   position: absolute;
-  inset: 0;
+  top: 0; bottom: 0;
+  left: var(--gx); right: var(--gr); /* clipped to the frame so photos never run under the index bar */
   perspective: 1400px;
   perspective-origin: 50% 46%;
   overflow: hidden;
@@ -422,7 +415,7 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
 }
 .photo img { display: block; height: 52vh; width: auto; max-width: 62vw; object-fit: contain; border-radius: 2px; user-select: none; }
 .photo.is-centre { box-shadow: 0 0 0 3px var(--yellow), 0 3px 0 3px rgba(29, 40, 71, 0.18); }
-.flow-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); }
+.flow-pos { position: absolute; left: calc(var(--gx) + (100vw - var(--gx) - var(--gr)) / 2); bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); white-space: nowrap; }
 .gallery .empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 .lightbox {
   position: fixed;
