@@ -80,7 +80,7 @@ export default function Home() {
         <section className="intro">
           <p className="eyebrow">01 / about</p>
           <div>
-            <h2>Half caffine club,<br />Half research club.</h2>
+            <h2>Half Caffeine club,<br />Half research club.</h2>
             <p className="lede">We brew specialty drinks and talk about interesting research papers.</p>
           </div>
         </section>
