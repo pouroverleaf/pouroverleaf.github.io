@@ -27,7 +27,7 @@
   --px: "Pokemon Emerald", "Pixelify Sans", var(--mono); /* pixel font: metadata lines, pane buttons, home line */
   --ease: cubic-bezier(0.65, 0, 0.35, 1);
   --slide: 1.1s;
-  --gx: 19rem; /* left frame line = index column edge; must clear the brand */
+  --gx: 19rem; /* left frame line = index column edge; IndexBar.jsx overrides it to sit one edge-gap past the wordmark */
   --gr: 3rem;  /* right margin */
   --gy: 4.5rem; /* top/bottom frame lines */
 }
