@@ -385,16 +385,20 @@ html[data-pane="home"] .cue-down { right: auto; left: 50%; transform: translateX
   .tag-tabs { left: 1.2rem; top: 4.5rem; }
   .log, .wheel-pos { left: 4vw; right: 4vw; }
   .log { top: 52vh; bottom: 2vh; }
+  .flow { left: 0; right: 0; }
+  .photo img { max-width: 80vw; }
 }
 
 /* gallery: cover-flow carousel */
 html[data-pane="gallery"] .percolation { opacity: 0.5; }
+.frame { transition: opacity var(--slide) var(--ease); }
+html[data-pane="gallery"] .frame { opacity: 0; }
 .gallery { position: absolute; inset: 0; }
 .flow {
   position: absolute;
   top: 0; bottom: 0;
-  left: var(--gx); right: var(--gr);
-  /* Clip to the frame so photos never run under the index bar. 3D children escape plain
+  left: 8rem; right: 8rem; /* symmetric about the viewport centre; clears the index labels, crosses the frame lines (hidden on this pane) */
+  /* Clip so photos never run under the index bar. 3D children escape plain
      overflow:hidden in WebKit, so clip-path and a stacking transform are set as well. */
   overflow: hidden;
   clip-path: inset(0);
@@ -416,9 +420,9 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
   backface-visibility: hidden;
   -webkit-box-reflect: below 6px linear-gradient(transparent 72%, rgba(0, 0, 0, 0.18));
 }
-.photo img { display: block; height: 52vh; width: auto; max-width: 62vw; object-fit: contain; border-radius: 2px; user-select: none; }
+.photo img { display: block; width: auto; height: auto; max-height: 50vh; max-width: calc((100vw - 16rem) * 0.6); border-radius: 2px; user-select: none; }
 .photo.is-centre { box-shadow: 0 0 0 3px var(--yellow), 0 3px 0 3px rgba(29, 40, 71, 0.18); }
-.flow-pos { position: absolute; left: calc(var(--gx) + (100vw - var(--gx) - var(--gr)) / 2); bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); white-space: nowrap; }
+.flow-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); white-space: nowrap; }
 .gallery .empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 .lightbox {
   position: fixed;
@@ -433,5 +437,5 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
   animation: rise 0.25s var(--ease);
 }
 .lightbox .photo { position: static; transform: none; cursor: zoom-out; -webkit-box-reflect: none; }
-.lightbox .photo img { height: auto; max-height: 84vh; max-width: 90vw; }
+.lightbox .photo img { max-height: 84vh; max-width: 90vw; }
 .photo.is-centre { cursor: zoom-in; }

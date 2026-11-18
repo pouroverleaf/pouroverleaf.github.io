@@ -37,7 +37,8 @@ export default function GalleryPane({ active, index, onSelect }) {
       s.last = now;
       s.pos += (target.current - s.pos) * (1 - Math.exp(-dt * 9));
       const H = innerHeight;
-      const gap0 = 0.4 * H; // centre → first neighbour
+      const W = els.current[0]?.parentElement?.clientWidth || innerWidth;
+      const gap0 = Math.min(0.4 * H, 0.5 * W); // centre → first neighbour
       const gap = 0.11 * H; // between neighbours
       els.current.forEach((el, i) => {
         if (!el) return;
