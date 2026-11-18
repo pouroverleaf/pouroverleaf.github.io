@@ -182,7 +182,7 @@ html[data-pane="about"] .percolation, html[data-pane="team"] .percolation { opac
   transform: translateY(-50%);
   width: 17rem;
 }
-.tabs { border-top: 1px solid var(--line); }
+.tabs { }
 .tabs > button {
   width: 100%;
   display: flex;
