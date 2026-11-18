@@ -80,16 +80,36 @@ Emerald (`static/fonts/pokemon-emerald.ttf`, `--px`, Pixelify Sans fallback) on 
 lines, the pane buttons and the home line. To try Berkeley Mono, self-host the
 woff2 and change `--mono`.
 
-## Local development
+## Running it locally
+
+You need Node 22 or newer (`node --version`). Install from nodejs.org or with
+`brew install node`. Then:
 
 ```
+git clone https://github.com/pouroverleaf/pouroverleaf.github.io
+cd pouroverleaf.github.io
 npm install
 npm run dev
 ```
 
+Open http://localhost:5173/. Edits to `src/content/*.md`, the code, or the CSS
+show up without a reload.
+
+If `npm install` fails with a 404 from a package proxy, your machine has a
+custom npm registry in `~/.npmrc`. Run
+`npm install --registry=https://registry.npmjs.org/` instead.
+
+`npm run build` writes the production site to `dist/`; `npm run preview`
+serves that build locally.
+
 Debug: `?freeze=2,3,0.6#logs` holds the team→logs transition at 60%.
 
-## Deploy
+## Deploying
 
-`npm run build` writes `dist/`. Serve that from GitHub Pages. `.nojekyll`
-keeps Pages from running Jekyll.
+Pushing to `main` runs `.github/workflows/deploy.yml`, which builds the site
+and publishes `dist/` to GitHub Pages. One-time repo setting: Settings →
+Pages → Source → **GitHub Actions**. The workflow can also be started by hand
+from the Actions tab. `.nojekyll` keeps Pages from running Jekyll.
+
+To publish a change: edit, commit, push to `main` (or open a PR into `main`
+and merge it). The site updates in about a minute.
