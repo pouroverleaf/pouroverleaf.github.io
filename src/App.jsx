@@ -25,6 +25,9 @@ export default function App() {
   const [tag, setTag] = useState(null);
   const [logIndex, setLogIndex] = useState(0);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [cmd, setCmd] = useState(null); // vim command line: ':' then a pane number or name, Enter to jump
+  const cmdRef = useRef(null);
+  const setCommand = (v) => { cmdRef.current = v; setCmd(v); };
   const logRef = useRef(0);
   const photoRef = useRef(0);
   const paneEls = useRef([]);
@@ -100,15 +103,44 @@ export default function App() {
 
     // Keys: arrows / PageUp / PageDown / space, plus vim: j k h l, gg (first pane), G (last pane).
     // Shift+↓/↑ or J/K always change pane, even on logs where plain j/k browse entries.
-    let lastG = 0;
+    let lastG = 0, count = '', countAt = 0;
+    // :3 or :gal → pane. Numbers are 1-based like the index bar.
+    const runCommand = (text) => {
+      const t = text.trim().toLowerCase();
+      if (!t) return;
+      if (/^\d+$/.test(t)) { const n = Number(t); if (n >= 1 && n <= PANES.length) goTo(n - 1); return; }
+      const i = PANES.findIndex((name) => name.startsWith(t));
+      if (i >= 0) goTo(i);
+    };
     const onKey = (e) => {
       if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = getTransition();
+      if (cmdRef.current !== null) {
+        e.preventDefault();
+        if (e.key === 'Escape') return setCommand(null);
+        if (e.key === 'Enter') { runCommand(cmdRef.current); return setCommand(null); }
+        if (e.key === 'Backspace') return setCommand(cmdRef.current ? cmdRef.current.slice(0, -1) : null);
+        if (e.key.length === 1) setCommand(cmdRef.current + e.key);
+        return;
+      }
+      if (e.key === ':') { e.preventDefault(); return setCommand(''); }
+      // count prefix for G: 3G → pane 3
+      if (/^\d$/.test(e.key)) {
+        const now = performance.now();
+        count = now - countAt < 1000 ? count + e.key : e.key;
+        countAt = now;
+        return;
+      }
       const down = ['ArrowDown', 'PageDown', ' ', 'j', 'J'].includes(e.key);
       const up = ['ArrowUp', 'PageUp', 'k', 'K'].includes(e.key);
       const right = e.key === 'ArrowRight' || e.key === 'l', left = e.key === 'ArrowLeft' || e.key === 'h';
       if (e.key === 'Escape' && s.index === LOGS_PANE) return goTo(2);
-      if (e.key === 'G') { e.preventDefault(); return goTo(PANES.length - 1); }
+      if (e.key === 'G') {
+        e.preventDefault();
+        const n = performance.now() - countAt < 1000 && count ? Number(count) : 0;
+        count = '';
+        return goTo(n >= 1 && n <= PANES.length ? n - 1 : PANES.length - 1);
+      }
       if (e.key === 'g') {
         const now = performance.now();
         if (now - lastG < 500) { lastG = 0; e.preventDefault(); return goTo(0); }
@@ -182,6 +214,7 @@ export default function App() {
       <Roundtable logs={logs} logIndex={logIndex} onSelectLog={selectLog} />
       <IndexBar />
       <ScrollCue />
+      {cmd !== null && <div className="cmdline" aria-live="polite">:{cmd}<i aria-hidden="true" /></div>}
     </>
   );
 }

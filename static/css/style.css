@@ -445,3 +445,18 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
 }
 .lightbox .photo { cursor: zoom-out; }
 .lightbox .photo img { max-height: 84vh; max-width: 90vw; }
+
+/* vim command line (":3", ":gal") */
+.cmdline {
+  position: fixed;
+  left: 2rem; bottom: 0.8rem;
+  z-index: 7;
+  padding: 0.15rem 0.6rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  font-family: var(--pk);
+  font-size: 1rem;
+  color: var(--ink);
+}
+.cmdline i { display: inline-block; width: 0.55em; height: 1em; margin-left: 1px; vertical-align: -0.15em; background: var(--red); animation: blink 1s steps(2) infinite; }
