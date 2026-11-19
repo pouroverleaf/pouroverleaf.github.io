@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PANES, COMMIT, goTo, setDrag, release, getTransition, position, mix, initFromHash, usePaneIndex } from './lib/panes';
 import { byTag } from './lib/logs';
 import { GALLERY } from './lib/content';
-import { MODES } from './lib/layout';
+import { modeFor } from './lib/layout';
 import Percolation, { setPercolationMask } from './components/Percolation';
 import Roundtable from './components/Roundtable';
 import IndexBar, { ScrollCue } from './components/IndexBar';
@@ -19,6 +20,12 @@ const GALLERY_PANE = 4;
 const DRAG_PX = 260;
 const dragFromWheel = (acc) => Math.sign(acc) * 1.15 * (1 - Math.exp(-Math.abs(acc) / DRAG_PX));
 const wheelFromDrag = (o) => -DRAG_PX * Math.log(1 - Math.min(0.999, Math.abs(o) / 1.15)) * Math.sign(o);
+// Elements with class "scroll" (log body, about text) scroll natively when they overflow; wheel and
+// touch gestures that start inside one are left to the browser instead of moving panes or items.
+const scrollerOf = (target) => {
+  const el = target?.closest?.('.scroll');
+  return el && el.scrollHeight > el.clientHeight ? el : null;
+};
 
 export default function App() {
   const index = usePaneIndex();
@@ -40,7 +47,7 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.pane = PANES[index];
     // On logs the logo is projected into the percolation where the roundtable disc was.
-    const m = MODES[LOGS_PANE];
+    const m = modeFor(LOGS_PANE, innerWidth, innerHeight);
     setPercolationMask(index === LOGS_PANE ? { cx: m.cx, cy: m.cy, r: m.rim } : null);
   }, [index]);
 
@@ -62,7 +69,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let acc = 0, itemAcc = 0, lastEvent = 0, armed = true, releaseTimer = 0, touchX = 0, touchY = 0, touching = false;
+    let acc = 0, itemAcc = 0, lastEvent = 0, armed = true, releaseTimer = 0, touchX = 0, touchY = 0, touching = false, touchScroll = false;
     const stepLog = (n) => selectLog(logRef.current + n);
     const stepPhoto = (n) => GALLERY.length && selectPhoto(photoRef.current + n);
 
@@ -83,8 +90,7 @@ export default function App() {
     };
 
     const onWheel = (e) => {
-      const body = e.target.closest?.('.log-body');
-      if (body && body.scrollHeight > body.clientHeight) return;
+      if (scrollerOf(e.target)) return;
       e.preventDefault();
       const s = getTransition();
       const now = performance.now();
@@ -113,10 +119,12 @@ export default function App() {
       if (i >= 0) goTo(i);
     };
     const onKey = (e) => {
-      if (e.target.matches('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target;
+      if (t?.closest?.('input, textarea') || e.metaKey || e.ctrlKey || e.altKey) return;
       const s = getTransition();
       if (cmdRef.current !== null) {
         e.preventDefault();
+        e.stopImmediatePropagation(); // the command line owns Escape; the lightbox must not also close
         if (e.key === 'Escape') return setCommand(null);
         if (e.key === 'Enter') { runCommand(cmdRef.current); return setCommand(null); }
         if (e.key === 'Backspace') return setCommand(cmdRef.current ? cmdRef.current.slice(0, -1) : null);
@@ -124,6 +132,8 @@ export default function App() {
         return;
       }
       if (e.key === ':') { e.preventDefault(); return setCommand(''); }
+      // Space on a focused button or link presses it, as the browser would.
+      if (e.key === ' ' && t?.closest?.('button, a, summary, [tabindex]')) return;
       // count prefix for G: 3G → pane 3
       if (/^\d$/.test(e.key)) {
         const now = performance.now();
@@ -156,16 +166,25 @@ export default function App() {
       goTo(s.index + (down ? 1 : -1));
     };
 
-    const onTouchStart = (e) => { touchX = e.touches[0].clientX; touchY = e.touches[0].clientY; touching = true; };
+    // Touch. A gesture that starts inside a scrolling element belongs to the browser. The globe
+    // stops propagation of touches that land on the sphere, so those never reach here.
+    const onTouchStart = (e) => {
+      touchX = e.touches[0].clientX;
+      touchY = e.touches[0].clientY;
+      touching = true;
+      touchScroll = !!scrollerOf(e.target);
+    };
     const onTouchMove = (e) => {
-      if (!touching) return;
+      if (!touching || touchScroll) return;
       const s = getTransition();
       if (s.index === LOGS_PANE || s.index === GALLERY_PANE) return;
       e.preventDefault();
       setDrag((touchY - e.touches[0].clientY) / (innerHeight * 0.6));
     };
     const onTouchEnd = (e) => {
+      const was = touching && !touchScroll;
       touching = false;
+      if (!was) return;
       const s = getTransition();
       const dx = e.changedTouches[0].clientX - touchX;
       const dy = e.changedTouches[0].clientY - touchY;
@@ -186,18 +205,20 @@ export default function App() {
     addEventListener('touchstart', onTouchStart, { passive: true });
     addEventListener('touchmove', onTouchMove, { passive: false });
     addEventListener('touchend', onTouchEnd);
+    addEventListener('touchcancel', onTouchEnd);
     return () => {
       removeEventListener('wheel', onWheel);
       removeEventListener('keydown', onKey);
       removeEventListener('touchstart', onTouchStart);
       removeEventListener('touchmove', onTouchMove);
       removeEventListener('touchend', onTouchEnd);
+      removeEventListener('touchcancel', onTouchEnd);
     };
   }, [N]);
 
   const current = N ? logs[mod(logIndex, N)] : null;
-  const pane = (i, child) => (
-    <section key={i} ref={(el) => (paneEls.current[i] = el)} className={`pane pane-${PANES[i]}${i === index ? ' is-active' : ''}`}>
+  const pane = (i, child, extra = '') => (
+    <section key={i} ref={(el) => (paneEls.current[i] = el)} className={`pane pane-${PANES[i]}${extra}${i === index ? ' is-active' : ''}`}>
       {child}
     </section>
   );
@@ -206,7 +227,7 @@ export default function App() {
     <>
       <Percolation />
       <div className="frame" aria-hidden="true" />
-      {pane(0, <HomePane active={index === 0} />)}
+      {pane(0, <HomePane active={index === 0} />, ' scroll')} {/* scrolls on landscape phones only (style.css) */}
       {pane(1, <AboutPane />)}
       {pane(2, null)}
       {pane(LOGS_PANE, <ResearchPane log={current} n={N ? mod(logIndex, N) : 0} total={N} tag={tag} onTag={pickTag} />)}
@@ -214,7 +235,8 @@ export default function App() {
       <Roundtable logs={logs} logIndex={logIndex} onSelectLog={selectLog} />
       <IndexBar />
       <ScrollCue />
-      {cmd !== null && <div className="cmdline" aria-live="polite">:{cmd}<i aria-hidden="true" /></div>}
+      {/* Portaled next to the lightbox (also on body) so it stacks above it; #root is its own stacking context. */}
+      {cmd !== null && createPortal(<div className="cmdline" aria-live="polite">:{cmd}<i aria-hidden="true" /></div>, document.body)}
     </>
   );
 }

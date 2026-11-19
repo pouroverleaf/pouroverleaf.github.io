@@ -15,7 +15,7 @@ export default function ResearchPane({ log, n, total, tag, onTag }) {
                 {log.author && <span className="author">by {log.author}</span>}
               </p>
             </header>
-            <div className="log-body" dangerouslySetInnerHTML={{ __html: log.html }} />
+            <div className="log-body scroll" dangerouslySetInnerHTML={{ __html: log.html }} />
           </article>
         </>
       ) : (

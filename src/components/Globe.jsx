@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { feature } from 'topojson-client';
 import land110 from 'world-atlas/land-110m.json';
+import { NARROW } from '../lib/layout';
 
 const TEX_W = 2048;
 const TEX_H = 1024;
@@ -176,8 +177,20 @@ function headPositions(items) {
   return out;
 }
 const ringGeo = new THREE.RingGeometry(0.014, 0.019, 32);
-const hitGeo = new THREE.SphereGeometry(0.04, 10, 8);
 const Z_AXIS = new THREE.Vector3(0, 0, 1);
+const PICK_PX = 14; // pointer must be within this many CSS px of a head's centre on screen
+
+// Is the segment from the camera to world point p blocked by the unit sphere at the origin?
+function behindGlobe(p, cam) {
+  const d = p.clone().sub(cam);
+  const len = d.length();
+  d.divideScalar(len);
+  const b = cam.dot(d);
+  const disc = b * b - (cam.lengthSq() - 1);
+  if (disc < 0) return false;
+  const t = -b - Math.sqrt(disc);
+  return t > 0 && t < len;
+}
 
 export default function Globe({ active, points, color, selectedId, onSelect }) {
   const containerRef = useRef(null);
@@ -198,9 +211,16 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-    // Debug: ?look=lat,lon,distance starts the camera over a point.
-    const look = (new URLSearchParams(location.search).get('look') || '20,10,5.7').split(',').map(Number);
-    camera.position.copy(latLonToVec3(look[0], look[1], look[2] || 5.7)); // canvas is 112vh tall; 5.7 puts the sphere at ~58% of the viewport height
+    // Wide layout (canvas is the whole pane, 112vh tall): 5.7 puts the sphere at ~58% of the viewport height.
+    // Narrow layout (a short box under the top bar): fit the sphere to ~82% of the box's shorter side.
+    const cw = container.clientWidth || 1, ch = container.clientHeight || 1;
+    const fitDist = innerWidth > NARROW ? 5.7 : 3.54 * Math.max(1, ch / cw);
+    // Debug: ?look=lat,lon,distance starts the camera over a point. Bad values fall back.
+    const look = (new URLSearchParams(location.search).get('look') || '').split(',').map(Number);
+    const lat = Number.isFinite(look[0]) ? look[0] : 20;
+    const lon = Number.isFinite(look[1]) ? look[1] : 10;
+    const dist0 = THREE.MathUtils.clamp(Number.isFinite(look[2]) && look[2] > 0 ? look[2] : fitDist, MIN_DIST, MAX_DIST);
+    camera.position.copy(latLonToVec3(lat, lon, dist0));
     scene.add(camera);
 
     scene.add(new THREE.HemisphereLight('#ffffff', '#EFE6D8', 3.0)); // near-flat sphere; the sun mostly shades the pins
@@ -230,7 +250,6 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
     const markerRoot = new THREE.Group();
     globe.add(markerRoot);
     let markers = [];
-    let hitMeshes = [];
     let hovered = null;
     let selected = null;
     let selectedKey = null;
@@ -271,13 +290,39 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
       raycaster.setFromCamera(ndc, camera);
       return raycaster.intersectObjects(targets, false)[0] || null;
     };
+    // Nearest visible head within PICK_PX of the pointer, measured on screen. Heads in a cluster
+    // sit closer together than any usable hit sphere, so picking is done in 2D instead.
+    const headPos = new THREE.Vector3();
     const pickMarker = (e) => {
-      const hit = pick(e, [sphere, ...hitMeshes]);
-      return hit && hit.object !== sphere ? hit.object.userData.marker : null;
+      const r = canvas.getBoundingClientRect();
+      const px = e.clientX - r.left, py = e.clientY - r.top;
+      let best = null, bestD = PICK_PX * PICK_PX;
+      for (const m of markers) {
+        m.head.getWorldPosition(headPos);
+        if (behindGlobe(headPos, camera.position)) continue;
+        headPos.project(camera);
+        if (headPos.z > 1) continue;
+        const sx = ((headPos.x + 1) / 2) * r.width, sy = ((1 - headPos.y) / 2) * r.height;
+        const d = (sx - px) ** 2 + (sy - py) ** 2;
+        if (d < bestD) { best = m; bestD = d; }
+      }
+      return best;
     };
 
     let down = null;
+    // Touch: only a finger that lands on the sphere rotates the globe. Elsewhere on the canvas the
+    // gesture is left to the window handlers in App.jsx, which drag the pane. Runs in the capture
+    // phase so it precedes OrbitControls' own pointerdown listener.
+    const onPointerDownCapture = (e) => {
+      if (e.pointerType === 'touch') controls.enabled = !!pick(e, [sphere]);
+      else controls.enabled = true;
+    };
+    const onTouchStart = (e) => {
+      const t = e.touches[0];
+      if (e.touches.length === 1 && t && pick(t, [sphere])) e.stopPropagation();
+    };
     const onPointerDown = (e) => {
+      if (!controls.enabled) return;
       down = { x: e.clientX, y: e.clientY };
       tween = null;
       pause();
@@ -312,6 +357,8 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
       pause();
       resumeLater();
     };
+    canvas.addEventListener('pointerdown', onPointerDownCapture, true);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointerup', onPointerUp);
     canvas.addEventListener('pointermove', onPointerMove);
@@ -332,13 +379,19 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
 
     const sph = new THREE.Spherical();
     let raf = 0;
+    let lastFrame = 0;
     const frame = () => {
       raf = requestAnimationFrame(frame);
-      const t = performance.now() / 1000;
-      controls.update();
+      const nowMs = performance.now();
+      const t = nowMs / 1000;
+      // Time step so auto-rotate and the easings below run at the same speed on 60 and 120 Hz displays.
+      const dt = lastFrame ? Math.min(0.05, (nowMs - lastFrame) / 1000) : 1 / 60;
+      lastFrame = nowMs;
+      const ease = (k) => 1 - Math.exp(-dt * k); // per-frame fraction equivalent to 0.2–0.25 at 60 Hz
+      controls.update(dt);
 
       const dist = camera.position.length();
-      if (Math.abs(dist - zoomTarget) > 1e-4) camera.position.setLength(dist + (zoomTarget - dist) * 0.2);
+      if (Math.abs(dist - zoomTarget) > 1e-4) camera.position.setLength(dist + (zoomTarget - dist) * ease(13));
 
       if (tween) {
         const k = Math.min(1, (performance.now() - tween.start) / 800);
@@ -356,9 +409,9 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
       const pulse = 0.35 + 0.35 * (0.5 + 0.5 * Math.sin(t * 4));
       for (const m of markers) {
         const s = m === hovered ? 1.5 : 1;
-        m.group.scale.setScalar(m.group.scale.x + (s - m.group.scale.x) * 0.25);
+        m.group.scale.setScalar(m.group.scale.x + (s - m.group.scale.x) * ease(17));
         const rs = m === selected ? 2.5 : 1;
-        m.ring.scale.setScalar(m.ring.scale.x + (rs - m.ring.scale.x) * 0.2);
+        m.ring.scale.setScalar(m.ring.scale.x + (rs - m.ring.scale.x) * ease(13));
         m.ring.material.opacity = m === selected ? pulse : 0.6;
       }
       renderer.render(scene, camera);
@@ -369,11 +422,9 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
         m.stem.material.dispose();
         m.head.material.dispose();
         m.ring.material.dispose();
-        m.hit.material.dispose();
       }
       markerRoot.clear();
       markers = [];
-      hitMeshes = [];
       hovered = null;
       selected = null;
     };
@@ -428,14 +479,9 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
             new THREE.MeshBasicMaterial({ color: pc, side: THREE.DoubleSide, transparent: true, opacity: 0.6, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
           );
           ring.position.z = 0.0005;
-          const hit = new THREE.Mesh(hitGeo, new THREE.MeshBasicMaterial({ visible: false }));
-          hit.position.copy(local);
-          group.add(stem, head, ring, hit);
+          group.add(stem, head, ring);
           markerRoot.add(group);
-          const marker = { point, group, stem, head, ring, hit };
-          hit.userData.marker = marker;
-          markers.push(marker);
-          hitMeshes.push(hit);
+          markers.push({ point, group, stem, head, ring });
         }
         selected = markers.find((m) => m.point.id === selectedKey) || null;
         if (!raf) renderer.render(scene, camera);
@@ -448,6 +494,8 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
       raf = 0;
       clearTimeout(resumeTimer);
       ro.disconnect();
+      canvas.removeEventListener('pointerdown', onPointerDownCapture, true);
+      canvas.removeEventListener('touchstart', onTouchStart);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointermove', onPointerMove);
@@ -462,6 +510,7 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
       dotsMat.dispose();
       texture.dispose();
       renderer.dispose();
+      renderer.forceContextLoss(); // free the WebGL context now rather than at GC (StrictMode remounts, HMR)
       canvas.remove();
       apiRef.current = null;
     };

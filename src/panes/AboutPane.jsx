@@ -7,7 +7,7 @@ const html = marked.parse(about);
 
 export default function AboutPane() {
   return (
-    <div className="about">
+    <div className="about scroll">
       <div className="about-shape">
         <i className="sl" aria-hidden="true" />
         <i className="sr" aria-hidden="true" />

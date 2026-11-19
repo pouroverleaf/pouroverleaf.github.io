@@ -1,19 +1,12 @@
 import { marked } from 'marked';
+import { parseFront } from './content';
 
 export const TAGS = ['coffee', 'research', 'meta research', 'fun'];
 
 const files = import.meta.glob('../content/logs/*.md', { query: '?raw', import: 'default', eager: true });
 
 function parse(path, raw) {
-  const m = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
-  const meta = {};
-  if (m) {
-    for (const line of m[1].split('\n')) {
-      const i = line.indexOf(':');
-      if (i > 0) meta[line.slice(0, i).trim()] = line.slice(i + 1).trim();
-    }
-  }
-  const body = m ? m[2] : raw;
+  const { meta, body } = parseFront(raw);
   return {
     id: path.split('/').pop().replace(/\.md$/, ''),
     title: meta.title || 'untitled',
@@ -24,9 +17,10 @@ function parse(path, raw) {
   };
 }
 
+// Newest first. Same-date logs fall back to filename order so issue numbers are stable.
 export const LOGS = Object.entries(files)
   .map(([path, raw]) => parse(path, raw))
-  .sort((a, b) => (a.date < b.date ? 1 : -1));
+  .sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
 
 // Issue numbers count up from the oldest log. Dates are shown Brutus-style: 2026.11.12
 LOGS.forEach((log, i) => {

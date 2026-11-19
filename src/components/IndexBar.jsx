@@ -1,28 +1,37 @@
 import { useEffect, useRef } from 'react';
 import { PANES, goTo, usePaneIndex } from '../lib/panes';
+import { NARROW } from '../lib/layout';
 
 export default function IndexBar() {
   const index = usePaneIndex();
+  const bar = useRef(null);
   const brand = useRef(null);
 
-  // Put the left frame line as far past the wordmark as the logo is from the viewport edge.
+  // Wide: put the left frame line as far past the wordmark as the logo is from the viewport edge.
+  // Narrow: the bar is a top row; publish its height so panes can lay out beneath it.
   useEffect(() => {
     const el = brand.current;
     const root = document.documentElement;
     const place = () => {
-      if (innerWidth <= 900) return root.style.removeProperty('--gx');
+      if (innerWidth <= NARROW) {
+        root.style.removeProperty('--gx');
+        root.style.setProperty('--nav-h', `${bar.current.offsetHeight}px`);
+        return;
+      }
+      root.style.removeProperty('--nav-h');
       const r = el.getBoundingClientRect();
       root.style.setProperty('--gx', `${Math.round(r.right + r.left)}px`);
     };
     const ro = new ResizeObserver(place);
     ro.observe(el);
+    ro.observe(bar.current);
     addEventListener('resize', place);
     place();
-    return () => { ro.disconnect(); removeEventListener('resize', place); root.style.removeProperty('--gx'); };
+    return () => { ro.disconnect(); removeEventListener('resize', place); root.style.removeProperty('--gx'); root.style.removeProperty('--nav-h'); };
   }, []);
 
   return (
-    <aside className="index">
+    <aside ref={bar} className="index">
       <a ref={brand} className="brand" href="#home" onClick={(e) => { e.preventDefault(); goTo(0); }}>
         <img src="/img/Logo.png" alt="" width="28" height="28" />
         <span>pouroverleaf</span>

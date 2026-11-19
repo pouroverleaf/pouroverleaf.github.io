@@ -67,24 +67,27 @@ export default function HomePane({ active }) {
       <div className="globe-wrap">
         <Globe active={active} points={points} color="#710318" selectedId={selected?.id ?? null} onSelect={setSelected} />
       </div>
-      <h1 className="home-line">{HOME.lines.map((l, i) => <Fragment key={i}>{i ? <br /> : null}{l}</Fragment>)}</h1>
-      <aside className="map-key">
-        <div className="tabs">
-          {LAYERS.map((l) => (
-            <button
-              key={l.key}
-              type="button"
-              className={enabled.has(l.key) ? 'is-active' : ''}
-              aria-pressed={enabled.has(l.key)}
-              onClick={() => toggle(l.key)}
-            >
-              <i style={{ background: l.color }} />
-              <span>{l.label}</span>
-            </button>
-          ))}
-        </div>
-        {selected && <PointCard p={selected} onClose={() => setSelected(null)} />}
-      </aside>
+      {/* .home-foot is display: contents on wide screens; on narrow ones it is a row under the globe */}
+      <div className="home-foot">
+        <h1 className="home-line">{HOME.lines.map((l, i) => <Fragment key={i}>{i ? <br /> : null}{l}</Fragment>)}</h1>
+        <aside className="map-key">
+          <div className="tabs">
+            {LAYERS.map((l) => (
+              <button
+                key={l.key}
+                type="button"
+                className={enabled.has(l.key) ? 'is-active' : ''}
+                aria-pressed={enabled.has(l.key)}
+                onClick={() => toggle(l.key)}
+              >
+                <i style={{ background: l.color }} />
+                <span>{l.label}</span>
+              </button>
+            ))}
+          </div>
+          {selected && <PointCard p={selected} onClose={() => setSelected(null)} />}
+        </aside>
+      </div>
       <NextSession />
     </>
   );

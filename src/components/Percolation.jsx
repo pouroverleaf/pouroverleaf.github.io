@@ -12,8 +12,10 @@ const BINS_MASK = [[4, 'rgba(105,56,29,0.03)'], [30, 'rgba(105,56,29,0.05)'], [3
 const N = 128;
 
 let mask = null; // { cx, cy, r } as fractions of viewport (r of height)
+let onMask = null; // set by the component; used when there is no animation loop (reduced motion)
 export function setPercolationMask(m) {
   mask = m;
+  onMask?.();
 }
 
 export default function Percolation() {
@@ -35,26 +37,7 @@ export default function Percolation() {
       const d = g.getImageData(0, 0, N, N).data;
       alpha = new Float32Array(N * N);
       for (let i = 0; i < N * N; i++) alpha[i] = d[i * 4 + 3] / 255;
-    };
-
-    const resize = () => {
-      W = canvas.width = innerWidth;
-      H = canvas.height = innerHeight;
-      cols = Math.ceil(W / CELL);
-      rows = Math.ceil(H / CELL);
-      grid = new Uint8Array(cols * rows);
-      parent = new Int32Array(cols * rows);
-      size = new Int32Array(cols * rows);
-      for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < 0.59 ? 1 : 0;
-      burst = 90;
-    };
-
-    const find = (i) => {
-      while (parent[i] !== i) {
-        parent[i] = parent[parent[i]];
-        i = parent[i];
-      }
-      return i;
+      if (still) settle();
     };
 
     const targetP = (i, now) => {
@@ -75,6 +58,34 @@ export default function Percolation() {
         }
       }
       return a > 0.4 ? P_IN : P_OUT;
+    };
+
+    const resize = () => {
+      W = canvas.width = innerWidth;
+      H = canvas.height = innerHeight;
+      cols = Math.ceil(W / CELL);
+      rows = Math.ceil(H / CELL);
+      grid = new Uint8Array(cols * rows);
+      parent = new Int32Array(cols * rows);
+      size = new Int32Array(cols * rows);
+      for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < 0.59 ? 1 : 0;
+      burst = 90;
+      if (still) settle(); else draw(); // setting canvas.width cleared it
+    };
+
+    // Reduced motion: no loop, so sample every cell from its target distribution once and draw.
+    const settle = () => {
+      const now = performance.now();
+      for (let i = 0; i < grid.length; i++) grid[i] = Math.random() < targetP(i, now) ? 1 : 0;
+      draw();
+    };
+
+    const find = (i) => {
+      while (parent[i] !== i) {
+        parent[i] = parent[parent[i]];
+        i = parent[i];
+      }
+      return i;
     };
 
     const draw = () => {
@@ -129,11 +140,11 @@ export default function Percolation() {
     };
 
     resize();
-    draw();
-    if (!still) raf = requestAnimationFrame(tick);
+    if (still) onMask = settle; else raf = requestAnimationFrame(tick);
     addEventListener('resize', resize);
     return () => {
       cancelAnimationFrame(raf);
+      onMask = null;
       removeEventListener('resize', resize);
     };
   }, []);

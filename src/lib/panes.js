@@ -112,17 +112,25 @@ export function release() {
   springRaf = requestAnimationFrame(step);
 }
 
+const paneFromHash = () => PANES.indexOf(location.hash.replace('#', '').replace('research', 'logs')); // old links
+
 export function initFromHash() {
-  const i = PANES.indexOf(location.hash.replace('#', '').replace('research', 'logs')); // old links
+  const i = paneFromHash();
   if (i > 0) {
     state.index = state.from = state.to = state.start = i;
     document.title = `${PANES[i]} · pouroverleaf`;
   }
-  // Debug: ?freeze=from,to,t holds a transition mid-way.
+  // Editing the hash in the address bar moves the pane. goTo uses replaceState, which fires no hashchange.
+  addEventListener('hashchange', () => {
+    const j = paneFromHash();
+    if (j >= 0 && j !== state.index) goTo(j);
+  });
+  // Debug: ?freeze=from,to,t holds a transition mid-way. Ignored unless all three are in range.
   const f = new URLSearchParams(location.search).get('freeze');
   if (f) {
     const [from, to, t] = f.split(',').map(Number);
-    Object.assign(state, { from, to, start: from, t, k0: 0, index: to, animating: true });
+    const ok = (n) => Number.isInteger(n) && n >= 0 && n < PANES.length;
+    if (ok(from) && ok(to) && t >= 0 && t <= 1) Object.assign(state, { from, to, start: from, t, k0: 0, index: to, animating: true });
   }
 }
 

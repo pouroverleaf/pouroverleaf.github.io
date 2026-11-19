@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { TEAM } from '../lib/content';
 import { mix, easeInOut, clamp01, lerp } from '../lib/panes';
-import { MODES, cardRadius } from '../lib/layout';
+import { modeFor, cardRadius } from '../lib/layout';
 import AsciiDisc, { DISC_PX } from './AsciiDisc';
 
 // Committee cards sit around the ASCII disc on the team pane, facing the centre. On the research
@@ -24,6 +24,10 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
   const sim = useRef({ orbit: 0, pos: logIndex, last: 0, base: logIndex });
   const targetRef = useRef(logIndex);
   targetRef.current = logIndex;
+  // The base the DOM currently shows. Slot angles use this, not the freshly rounded value, so the
+  // cards' text and positions change in the same frame instead of jumping a slot for one frame.
+  const shownBase = useRef(base);
+  useLayoutEffect(() => { shownBase.current = base; }, [base]);
 
   useEffect(() => {
     let raf;
@@ -43,13 +47,14 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
 
       const W = innerWidth, H = innerHeight;
       const { a, b: bm, k, live } = m;
-      const centre = (mode) => [MODES[mode].cx * W, MODES[mode].cy * H];
+      const modes = [0, 1, 2, 3, 4].map((i) => modeFor(i, W, H));
+      const centre = (mode) => [modes[mode].cx * W, modes[mode].cy * H];
       const memberAngle = (i) => -Math.PI / 2 + (i * 2 * Math.PI) / TEAM.length + s.orbit;
-      const slotAngle = (j) => (b + j - s.pos) * STEP;
+      const slotAngle = (j) => (shownBase.current + j - s.pos) * STEP;
 
       // disc
       const A0 = centre(a), B0 = centre(bm);
-      const rimA = MODES[a].rim * H, rimB = MODES[bm].rim * H;
+      const rimA = modes[a].rim * H, rimB = modes[bm].rim * H;
       const dx = lerp(A0[0], B0[0], k), dy = lerp(A0[1], B0[1], k), dr = lerp(rimA, rimB, k);
       if (discEl.current) {
         const vis = (mode) => (mode === 2 ? 1 : 0);
@@ -60,10 +65,11 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
       // [x, y, rotation, scale, opacity] for a card in a given pane mode
       const pos = (kind, i, mode) => {
         const c = centre(mode);
-        const r = cardRadius(MODES[mode], H);
+        const r = cardRadius(modes[mode], H);
         if (kind === 'm') {
           const ang = memberAngle(i);
-          return [c[0] + r * Math.cos(ang), c[1] + r * Math.sin(ang), ang + Math.PI / 2, mode === 2 ? 1 : 0.8, mode === 2 ? 1 : 0];
+          const sc = mode === 2 ? modes[mode].scale ?? 1 : 0.8;
+          return [c[0] + r * Math.cos(ang), c[1] + r * Math.sin(ang), ang + Math.PI / 2, sc, mode === 2 ? 1 : 0];
         }
         if (mode === 3) {
           const ang = slotAngle(i);
@@ -101,7 +107,9 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
         else op = A[4];
         el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) rotate(${rot}rad) scale(${sc})`;
         el.style.opacity = op;
-        el.style.pointerEvents = op > 0.5 ? 'auto' : 'none';
+        // Faded cards are inert: no pointer events, no tab stop, hidden from assistive tech.
+        const off = op <= 0.5;
+        if (el.inert !== off) el.inert = off;
       };
 
       TEAM.forEach((_, i) => place(memberEls.current[i], 'm', i));
@@ -112,7 +120,7 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
   }, []);
 
   return (
-    <div className="cards" aria-live="polite">
+    <div className="cards">
       <AsciiDisc ref={discEl} />
       {TEAM.map((m, i) => (
         <button
