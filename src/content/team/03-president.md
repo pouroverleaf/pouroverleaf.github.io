@@ -1,8 +1,8 @@
 ---
 name: marnix
-title: iroh stan
+title: chief cactus juice procurement officer
 color: #105723
 img: /img/team/marnix.jpg
 ---
 
-oohlala im a quant oohlala
+wears cactus jack jordan 4s
