@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { PANES, COMMIT, goTo, setDrag, release, getTransition, position, mix, initFromHash, usePaneIndex } from './lib/panes';
+import { PANES, goTo, setPosition, subscribe, getTransition, position, mix, initFromHash, usePaneIndex } from './lib/panes';
+import { track } from './lib/track';
 import { byTag } from './lib/logs';
 import { GALLERY } from './lib/content';
 import { modeFor } from './lib/layout';
@@ -16,15 +17,16 @@ initFromHash();
 const mod = (n, m) => ((n % m) + m) % m;
 const LOGS_PANE = 3;
 const GALLERY_PANE = 4;
-// Wheel pixels for a full pane of drag before saturation. ~150px of wheel reaches the commit point.
-const DRAG_PX = 260;
-const dragFromWheel = (acc) => Math.sign(acc) * 1.15 * (1 - Math.exp(-Math.abs(acc) / DRAG_PX));
-const wheelFromDrag = (o) => -DRAG_PX * Math.log(1 - Math.min(0.999, Math.abs(o) / 1.15)) * Math.sign(o);
+// The whole site is one continuous track: home 0, about 1, team 2, then one unit per log, then one
+// unit per photo. Wheel and touch move along it 1:1; when input stops it eases to the nearest stop.
+const PX_PER_UNIT = 400; // wheel pixels per pane / log / photo
+const SNAP_BIAS = 0.2; // past this fraction in the direction you were scrolling, settle on the next stop
 // Elements with class "scroll" (log body, about text) scroll natively when they overflow; wheel and
 // touch gestures that start inside one are left to the browser instead of moving panes or items.
 const scrollerOf = (target) => {
   const el = target?.closest?.('.scroll');
-  return el && el.scrollHeight > el.clientHeight ? el : null;
+  if (!el || el.scrollHeight <= el.clientHeight) return null;
+  return /auto|scroll/.test(getComputedStyle(el).overflowY) ? el : null; // overflow: hidden doesn't scroll
 };
 
 export default function App() {
@@ -42,7 +44,9 @@ export default function App() {
   const N = logs.length;
   const selectLog = (j) => { logRef.current = j; setLogIndex(j); };
   const selectPhoto = (j) => { photoRef.current = j; setPhotoIndex(j); };
-  const pickTag = (t) => { setTag(t); selectLog(0); };
+  const pickTag = (t) => { setTag(t); selectLog(0); track.logPos = 0; };
+  // Filled by the input effect: clicks on a log card or a thumbnail move along the track too.
+  const trackApi = useRef({ pickLog: selectLog, pickPhoto: selectPhoto });
 
   useEffect(() => {
     document.documentElement.dataset.pane = PANES[index];
@@ -69,42 +73,94 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    let acc = 0, itemAcc = 0, lastEvent = 0, armed = true, releaseTimer = 0, touchX = 0, touchY = 0, touching = false, touchScroll = false;
-    const stepLog = (n) => selectLog(logRef.current + n);
-    const stepPhoto = (n) => GALLERY.length && selectPhoto(photoRef.current + n);
+    const Ls = Math.max(N, 1), Gs = Math.max(GALLERY.length, 1);
+    const LOG0 = LOGS_PANE, GAL0 = LOGS_PANE + Ls, END = GAL0 + Gs - 1;
+    const clampU = (v) => Math.max(0, Math.min(END, v));
+    // Where the track is for the current pane and selection (after a goTo, a click, a tag change).
+    const uFromState = () => {
+      const i = getTransition().index;
+      if (i < LOGS_PANE) return i;
+      if (i === LOGS_PANE) return LOG0 + mod(logRef.current, Ls);
+      return GAL0 + mod(photoRef.current, Gs);
+    };
+    let u = uFromState(), applying = false, lastDir = 0, idleTimer = 0, snapTarget = null, snapRaf = 0, snapLast = 0;
 
-    const commitOrRelease = () => {
-      releaseTimer = 0;
-      // After a commit, ignore the rest of this gesture (trackpad inertia) until a pause.
-      if (Math.abs(getTransition().offset) >= COMMIT) armed = false;
-      release();
-      acc = 0;
+    // Track position → pane position + fractional log / photo position.
+    const apply = () => {
+      let p, lp = 0, gp = 0;
+      if (u <= LOG0) p = u;
+      else if (u <= LOG0 + Ls - 1) { p = LOGS_PANE; lp = u - LOG0; }
+      else if (u <= GAL0) { p = LOGS_PANE + (u - (LOG0 + Ls - 1)); lp = Ls - 1; }
+      else { p = GALLERY_PANE; lp = Ls - 1; gp = u - GAL0; }
+      track.logPos = lp;
+      track.photoPos = gp;
+      const li = Math.round(lp), pi = Math.round(gp);
+      if (mod(logRef.current, Ls) !== li) selectLog(li);
+      if (mod(photoRef.current, Gs) !== pi) selectPhoto(pi);
+      applying = true;
+      setPosition(p);
+      applying = false;
+    };
+    const syncFromState = () => {
+      u = uFromState();
+      track.logPos = mod(logRef.current, Ls);
+      track.photoPos = mod(photoRef.current, Gs);
+    };
+    syncFromState();
+
+    const stopSnap = () => { snapTarget = null; cancelAnimationFrame(snapRaf); snapRaf = 0; };
+    const snapTick = (now) => {
+      if (snapTarget === null) return;
+      const dt = Math.min(0.05, (now - (snapLast || now)) / 1000);
+      snapLast = now;
+      u += (snapTarget - u) * (1 - Math.exp(-dt * 9));
+      if (Math.abs(snapTarget - u) < 0.002) { u = snapTarget; snapTarget = null; }
+      apply();
+      snapRaf = snapTarget === null ? 0 : requestAnimationFrame(snapTick);
+    };
+    const snapTo = (target) => {
+      snapTarget = clampU(target);
+      if (!snapRaf) { snapLast = 0; snapRaf = requestAnimationFrame(snapTick); }
+    };
+    // Settle on the next stop in the direction of travel once past SNAP_BIAS, else fall back.
+    const settle = () => {
+      idleTimer = 0;
+      snapTo(lastDir > 0 ? Math.ceil(u - SNAP_BIAS) : lastDir < 0 ? Math.floor(u + SNAP_BIAS) : Math.round(u));
+    };
+    const move = (units) => {
+      if (!units) return;
+      if (getTransition().animating) syncFromState(); // a goTo was running: continue from where it was heading
+      stopSnap();
+      lastDir = Math.sign(units);
+      u = clampU(u + units);
+      apply();
     };
 
-    // Wheel on logs/gallery browses items, 80px per step, in whichever axis moves most.
-    const browse = (e, step) => {
-      const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      itemAcc += d;
-      while (itemAcc > 80) { step(1); itemAcc -= 80; }
-      while (itemAcc < -80) { step(-1); itemAcc += 80; }
+    // A goTo (index bar, keys, hash) moved the pane: pick the track up from there.
+    const unsub = subscribe(() => { if (!applying) { stopSnap(); syncFromState(); } });
+
+    trackApi.current = {
+      // Roundtable cards pass an unbounded index; the wheel follows the nearest copy, so jump there.
+      pickLog: (abs) => { stopSnap(); selectLog(abs); syncFromState(); },
+      pickPhoto: (i) => { stopSnap(); lastDir = 0; snapTo(GAL0 + mod(i, Gs)); },
     };
+    const step = (n) => {
+      if (getTransition().animating) syncFromState();
+      lastDir = n;
+      snapTo(Math.round(snapTarget ?? u) + n);
+    };
+    const stepLog = step, stepPhoto = step;
 
     const onWheel = (e) => {
-      if (scrollerOf(e.target)) return;
-      e.preventDefault();
+      if (e.ctrlKey) return; // pinch / ctrl+wheel: globe zoom or browser zoom, not paging
       const s = getTransition();
-      const now = performance.now();
-      const fresh = now - lastEvent > 200;
-      lastEvent = now;
-      if (fresh) { armed = true; acc = s.offset ? wheelFromDrag(s.offset) : 0; itemAcc = 0; }
-      if (s.animating || !armed) return;
-      if (s.index === LOGS_PANE) return browse(e, stepLog);
-      if (s.index === GALLERY_PANE) return browse(e, stepPhoto);
-      acc += e.deltaY;
-      setDrag(dragFromWheel(acc));
-      clearTimeout(releaseTimer);
-      if (Math.abs(getTransition().offset) >= COMMIT) commitOrRelease();
-      else releaseTimer = setTimeout(commitOrRelease, 170);
+      if (s.index !== LOGS_PANE && s.index !== GALLERY_PANE && scrollerOf(e.target)) return;
+      e.preventDefault();
+      const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? innerHeight : 1; // lines/pages → px
+      const d = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
+      move(d / PX_PER_UNIT);
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(settle, 140);
     };
 
     // Keys: arrows / PageUp / PageDown / space, plus vim: j k h l, gg (first pane), G (last pane).
@@ -166,38 +222,34 @@ export default function App() {
       goTo(s.index + (down ? 1 : -1));
     };
 
-    // Touch. A gesture that starts inside a scrolling element belongs to the browser. The globe
-    // stops propagation of touches that land on the sphere, so those never reach here.
+    // Touch drags the track like the wheel: vertical everywhere, horizontal too on the gallery.
+    // A gesture that starts inside a scrolling element belongs to the browser. The globe stops
+    // propagation of touches that land on the sphere, so those never reach here.
+    let touchX = 0, touchY = 0, touching = false, touchScroll = false, axis = null;
     const onTouchStart = (e) => {
       touchX = e.touches[0].clientX;
       touchY = e.touches[0].clientY;
       touching = true;
+      axis = null;
       touchScroll = !!scrollerOf(e.target);
     };
     const onTouchMove = (e) => {
       if (!touching || touchScroll) return;
-      const s = getTransition();
-      if (s.index === LOGS_PANE || s.index === GALLERY_PANE) return;
+      const x = e.touches[0].clientX, y = e.touches[0].clientY;
+      const dx = touchX - x, dy = touchY - y;
+      if (!axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        axis = Math.abs(dx) > Math.abs(dy) && getTransition().index === GALLERY_PANE ? 'x' : 'y';
+      }
       e.preventDefault();
-      setDrag((touchY - e.touches[0].clientY) / (innerHeight * 0.6));
+      touchX = x;
+      touchY = y;
+      move((axis === 'x' ? dx / innerWidth : dy / innerHeight) * 1.6);
     };
-    const onTouchEnd = (e) => {
-      const was = touching && !touchScroll;
+    const onTouchEnd = () => {
+      const was = touching && !touchScroll && axis;
       touching = false;
-      if (!was) return;
-      const s = getTransition();
-      const dx = e.changedTouches[0].clientX - touchX;
-      const dy = e.changedTouches[0].clientY - touchY;
-      if (s.index === LOGS_PANE) {
-        if (Math.abs(dy) > 50) stepLog(dy < 0 ? 1 : -1);
-        return;
-      }
-      if (s.index === GALLERY_PANE) {
-        if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) stepPhoto(dx < 0 ? 1 : -1);
-        else if (dy > 80) goTo(s.index - 1);
-        return;
-      }
-      release();
+      if (was) settle();
     };
 
     addEventListener('wheel', onWheel, { passive: false });
@@ -207,6 +259,9 @@ export default function App() {
     addEventListener('touchend', onTouchEnd);
     addEventListener('touchcancel', onTouchEnd);
     return () => {
+      unsub();
+      stopSnap();
+      clearTimeout(idleTimer);
       removeEventListener('wheel', onWheel);
       removeEventListener('keydown', onKey);
       removeEventListener('touchstart', onTouchStart);
@@ -231,8 +286,8 @@ export default function App() {
       {pane(1, <AboutPane />)}
       {pane(2, null)}
       {pane(LOGS_PANE, <ResearchPane log={current} n={N ? mod(logIndex, N) : 0} total={N} tag={tag} onTag={pickTag} />)}
-      {pane(GALLERY_PANE, <GalleryPane active={index === GALLERY_PANE} index={photoIndex} onSelect={selectPhoto} />)}
-      <Roundtable logs={logs} logIndex={logIndex} onSelectLog={selectLog} />
+      {pane(GALLERY_PANE, <GalleryPane active={index === GALLERY_PANE} index={photoIndex} onSelect={(j) => trackApi.current.pickPhoto(j)} />)}
+      <Roundtable logs={logs} logIndex={logIndex} onSelectLog={(j) => trackApi.current.pickLog(j)} />
       <IndexBar />
       <ScrollCue />
       {/* Portaled next to the lightbox (also on body) so it stacks above it; #root is its own stacking context. */}

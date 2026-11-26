@@ -348,12 +348,14 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
       down = null;
       resumeLater();
     };
+    // Plain wheel scrolls the page (App.jsx) wherever the mouse is; zoom is trackpad pinch or
+    // ctrl+wheel (browsers report a pinch as a wheel event with ctrlKey).
     const onWheel = (e) => {
-      if (!pick(e, [sphere])) return;
+      if (!e.ctrlKey || !pick(e, [sphere])) return;
       e.preventDefault();
       e.stopPropagation();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
-      zoomTarget = THREE.MathUtils.clamp(zoomTarget * Math.exp(dy * 0.0012), MIN_DIST, MAX_DIST);
+      zoomTarget = THREE.MathUtils.clamp(zoomTarget * Math.exp(THREE.MathUtils.clamp(dy, -40, 40) * 0.006), MIN_DIST, MAX_DIST);
       pause();
       resumeLater();
     };

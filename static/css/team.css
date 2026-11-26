@@ -1,0 +1,44 @@
+/* team: ascii roundtable + seats facing the centre */
+.disc {
+  position: absolute;
+  left: 0; top: 0;
+  opacity: 0;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+.disc pre { margin: 0; font-family: var(--mono); color: rgba(29, 40, 71, 0.35); }
+.disc .r { color: var(--ink); }
+.disc .l { color: var(--red); }
+.disc .d { color: rgba(105, 56, 29, 0.35); }
+
+.seat {
+  position: absolute;
+  left: 0; top: 0;
+  opacity: 0;
+  width: 17vh;
+  padding: 1.5vh 1.1vh 1.3vh;
+  display: grid;
+  justify-items: center;
+  gap: 0.2vh;
+  text-align: center;
+  will-change: transform, opacity;
+}
+.seat .avatar {
+  width: 6.8vh; height: 6.8vh;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--peach);
+  font-family: var(--pk);
+  font-size: 2.9vh;
+  text-shadow: none;
+  overflow: hidden;
+  margin-bottom: 0.5vh;
+}
+.seat .avatar img { width: 100%; height: 100%; object-fit: cover; }
+.seat strong { font-size: 2.6vh; line-height: 1.15; }
+.seat em { font-style: normal; font-family: var(--pk); font-size: 1.9vh; color: var(--mute); text-shadow: none; }
+.seat p { display: none; margin: 0.5vh 0 0; font-size: 2vh; line-height: 1.3; }
+.seat.is-open { z-index: 20; }
+.seat.is-open p { display: block; }
+

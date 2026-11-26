@@ -3,6 +3,7 @@ import { TEAM } from '../lib/content';
 import { mix, easeInOut, clamp01, lerp } from '../lib/panes';
 import { modeFor, cardRadius } from '../lib/layout';
 import AsciiDisc, { DISC_PX } from './AsciiDisc';
+import { track } from '../lib/track';
 
 // Committee cards sit around the ASCII disc on the team pane, facing the centre. On the research
 // pane the disc slides to the left edge and the cards spread along the visible arc as a cyclic
@@ -22,8 +23,8 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
   const slotEls = useRef([]);
   const discEl = useRef(null);
   const sim = useRef({ orbit: 0, pos: logIndex, last: 0, base: logIndex });
-  const targetRef = useRef(logIndex);
-  targetRef.current = logIndex;
+  const countRef = useRef(N);
+  countRef.current = N;
   // The base the DOM currently shows. Slot angles use this, not the freshly rounded value, so the
   // cards' text and positions change in the same frame instead of jumping a slot for one frame.
   const shownBase = useRef(base);
@@ -38,7 +39,11 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
       s.last = now;
       const m = mix();
       s.orbit += 0.1 * dt;
-      s.pos += (targetRef.current - s.pos) * (1 - Math.exp(-dt * 8));
+      // Follow the continuous scroll position (App.jsx), via whichever copy of it is nearest on the
+      // cyclic wheel so picking a card across the wrap doesn't spin the whole way round.
+      const n = countRef.current, want = track.logPos;
+      const target = n ? want + n * Math.round((s.pos - want) / n) : want;
+      s.pos += (target - s.pos) * (1 - Math.exp(-dt * 14));
       const b = Math.round(s.pos);
       if (b !== s.base) {
         s.base = b;

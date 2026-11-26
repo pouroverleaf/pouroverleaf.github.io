@@ -1,0 +1,191 @@
+/* Pokémon Emerald (static/fonts/pokemon-emerald.ttf), used for the pixel-font role --px. */
+@font-face {
+  font-family: "Pokemon Emerald";
+  src: url("/fonts/pokemon-emerald.ttf") format("truetype");
+  font-display: swap;
+}
+
+:root {
+  --bg: #F6F0E6;
+  --bg-2: #EFE6D8;
+  --ink: #1D2847;
+  --ink-2: #69381D;
+  --txt: #2E2E34;        /* emerald-style dark grey text */
+  --txt-shadow: #C9C3B8; /* and its light shadow */
+  --mute: rgba(29, 40, 71, 0.55);
+  --line: rgba(29, 40, 71, 0.14);
+  --line-2: rgba(29, 40, 71, 0.08);
+  --red: #710318;
+  --red-2: #992A2A;
+  --green: #105723;
+  --orange: #E86217;
+  --yellow: #F0D318;
+  --peach: #FFDBCE;
+  --paper: #FFFDF8;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --pk: "Pokemon Emerald", "Pixelify Sans", var(--mono); /* text font: everything except the ASCII disc and code */
+  --px: "Pokemon Emerald", "Pixelify Sans", var(--mono); /* pixel font: metadata lines, pane buttons, home line */
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --slide: 1.1s;
+  --gx: 19rem; /* left frame line = index column edge; IndexBar.jsx overrides it to sit one edge-gap past the wordmark */
+  --gr: 3rem;  /* right margin */
+  --gy: 4.5rem; /* top/bottom frame lines */
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--pk);
+  font-size: 20px; /* emerald runs small; everything is in rem */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { position: fixed; inset: 0; }
+
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+a { color: inherit; text-decoration: none; }
+img { display: block; }
+dl, dd, p { margin: 0; }
+
+/* type helpers */
+.fine { font-family: var(--px); font-size: 0.85rem; letter-spacing: 0; color: var(--mute); }
+.bar { color: var(--mute); margin: 0 0.15em; }
+.notes { color: var(--red); }
+
+/* menu-style button (mono) */
+.btn {
+  font-family: var(--pk);
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.5);
+  transition: border-color 0.25s, color 0.25s;
+}
+.btn:hover { border-color: var(--red); color: var(--red); }
+
+/* pokémon emerald text box: white fill, dark rounded border, inner coloured frame, grey text with a light shadow */
+.box {
+  position: relative;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px var(--paper), inset 0 0 0 4px var(--red-2), 0 3px 0 rgba(29, 40, 71, 0.18);
+  padding: 1rem 1.3rem 1.1rem;
+  font-family: var(--pk);
+  color: var(--txt);
+  text-shadow: 1px 1px 0 var(--txt-shadow);
+  line-height: 1.4;
+}
+.box strong { color: var(--ink); }
+.box .cursor::after {
+  content: "▼";
+  display: inline-block;
+  margin-left: 0.5em;
+  font-size: 0.75em;
+  color: var(--red);
+  text-shadow: none;
+  animation: blink 1s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+.box-head {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.45rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* layers */
+.percolation { position: fixed; inset: 0; z-index: 0; pointer-events: none; transition: opacity var(--slide) var(--ease); }
+html[data-pane="about"] .percolation, html[data-pane="team"] .percolation { opacity: 0.7; }
+.frame { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+.frame::before, .frame::after { content: ""; position: absolute; background: var(--line-2); }
+.frame::before { left: var(--gx); top: 0; bottom: 0; width: 1px; }
+.frame::after { right: var(--gr); top: 0; bottom: 0; width: 1px; }
+.pane { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
+.home-foot { display: contents; } /* narrow screens turn it into a row, see the media block at the end */
+.cards { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
+.index { z-index: 5; }
+
+/* panes: transform and visibility are set per frame from the pane position (src/App.jsx) */
+.pane { visibility: hidden; will-change: transform; }
+.pane.is-active { pointer-events: auto; }
+
+/* index bar (menu: mono) */
+.index {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--gx);
+  padding: 9.5rem 0 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  pointer-events: none;
+}
+.index > * { pointer-events: auto; }
+.brand {
+  position: fixed;
+  top: 1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--pk);
+  font-weight: 500;
+  font-size: 1.45rem;
+  width: max-content;
+  z-index: 6;
+}
+.brand img { width: 52px; height: 52px; }
+.index-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.55rem; }
+.index-list button {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  font-family: var(--pk);
+  font-size: 1rem;
+  color: rgba(29, 40, 71, 0.72);
+  transition: color 0.3s;
+}
+.index-list .num { font-size: 0.85rem; }
+.index-list .label { position: relative; padding-bottom: 2px; }
+.index-list .label::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: 0;
+  height: 2px;
+  width: 0;
+  background: var(--red);
+  transition: width 0.5s var(--ease);
+}
+.index-list li.is-active button { color: var(--ink); }
+.index-list li.is-active .label::after { width: 100%; }
+.index-list button:hover { color: var(--ink); }
+
+
+/* vim command line (":3", ":gal") */
+/* vim command line (":3", ":gal") */
+.cmdline {
+  position: fixed;
+  left: 2rem; bottom: 0.8rem;
+  z-index: 7;
+  padding: 0.15rem 0.6rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  font-family: var(--pk);
+  font-size: 1rem;
+  color: var(--ink);
+}
+.cmdline i { display: inline-block; width: 0.55em; height: 1em; margin-left: 1px; vertical-align: -0.15em; background: var(--red); animation: blink 1s steps(2) infinite; }
+

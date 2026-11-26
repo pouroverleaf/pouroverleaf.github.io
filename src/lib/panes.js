@@ -11,6 +11,7 @@ const DURATION = 760;
 const state = { index: 0, from: 0, to: 0, start: 0, t: 1, k0: 0, offset: 0, animating: false };
 const listeners = new Set();
 let springRaf = 0;
+let animId = 0; // bumps on every goTo so a superseded animation loop stops touching state
 
 export const clamp01 = (t) => Math.max(0, Math.min(1, t));
 export const lerp = (a, b, t) => a + (b - a) * t;
@@ -72,17 +73,39 @@ export function goTo(next) {
   state.index = next;
   state.t = 0;
   state.animating = true;
-  history.replaceState(null, '', `#${PANES[next]}`);
-  document.title = next === 0 ? 'pouroverleaf' : `${PANES[next]} · pouroverleaf`;
+  announce(next);
   const dur = DURATION * Math.sqrt(1 - state.k0);
   const begin = performance.now();
+  const id = ++animId;
   const step = (now) => {
+    if (id !== animId) return;
     state.t = clamp01((now - begin) / dur);
     if (state.t >= 1) state.animating = false;
     else requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
   listeners.forEach((fn) => fn(state.index));
+}
+
+function announce(i) {
+  history.replaceState(null, '', `#${PANES[i]}`);
+  document.title = i === 0 ? 'pouroverleaf' : `${PANES[i]} · pouroverleaf`;
+}
+
+// Continuous scroll: put the panes at fractional position p (2.3 = 30% of the way from pane 2 to 3)
+// with no animation. The pane nearest p becomes the index. Interrupts a goTo animation.
+export function setPosition(p) {
+  stopSpring();
+  animId++;
+  p = Math.max(0, Math.min(PANES.length - 1, p));
+  const i = Math.round(p);
+  state.animating = false;
+  state.t = 1;
+  state.offset = p - i;
+  if (i === state.index) return;
+  state.index = state.from = state.to = state.start = i;
+  announce(i);
+  listeners.forEach((fn) => fn(i));
 }
 
 // Live drag. offset is in pane units; past the ends it is rubber-banded.

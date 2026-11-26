@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GALLERY } from '../lib/content';
+import { track } from '../lib/track';
 
-// One large photo with a thumbnail bar under it. `index` is unbounded and wraps. Wheel/arrow
-// input lives in App.jsx. Click a thumbnail to jump; click the big photo to open it full-size.
+// One large photo with a thumbnail bar under it. Wheel/arrow input and the scroll position live in
+// App.jsx. Click a thumbnail to jump; click the big photo to open it full-size.
 const N = GALLERY.length;
 const mod = (n, m) => ((n % m) + m) % m;
 
@@ -25,22 +26,27 @@ export default function GalleryPane({ active, index, onSelect }) {
     return () => removeEventListener('keydown', onKey);
   }, [zoomed]);
 
-  // Keep the selected thumbnail centred once the bar is wider than the viewport allows.
+  // Keep the scroll position centred in the thumbnail bar once it is wider than the viewport. The
+  // position is fractional while scrolling, so the bar glides between thumbnails every frame.
   useEffect(() => {
-    const strip = stripRef.current, row = rowRef.current, t = thumbs.current[cur];
-    if (!strip || !row || !t) return;
-    const place = () => {
-      if (row.scrollWidth <= strip.clientWidth) {
-        row.style.transform = '';
-        return;
-      }
-      const want = strip.clientWidth / 2 - (t.offsetLeft + t.offsetWidth / 2);
+    if (!active) return;
+    let raf;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const strip = stripRef.current, row = rowRef.current;
+      if (!strip || !row) return;
+      if (row.scrollWidth <= strip.clientWidth) { row.style.transform = ''; return; }
+      const p = Math.max(0, Math.min(N - 1, track.photoPos));
+      const i = Math.floor(p), f = p - i;
+      const mid = (el) => (el ? el.offsetLeft + el.offsetWidth / 2 : 0);
+      const a = thumbs.current[i], b = thumbs.current[Math.min(N - 1, i + 1)];
+      const c = mid(a) + (mid(b) - mid(a)) * f;
+      const want = strip.clientWidth / 2 - c;
       row.style.transform = `translateX(${Math.min(0, Math.max(strip.clientWidth - row.scrollWidth, want))}px)`;
     };
-    place();
-    addEventListener('resize', place);
-    return () => removeEventListener('resize', place);
-  }, [cur]);
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [active]);
 
   if (!N) {
     return (
@@ -51,7 +57,6 @@ export default function GalleryPane({ active, index, onSelect }) {
   }
 
   const g = GALLERY[cur];
-  const jump = (i) => onSelect(index + (mod(i - cur + N / 2, N) - N / 2));
 
   return (
     <div className="gallery">
@@ -70,7 +75,7 @@ export default function GalleryPane({ active, index, onSelect }) {
               className={`thumb${i === cur ? ' is-selected' : ''}`}
               role="listitem"
               aria-current={i === cur || undefined}
-              onClick={() => jump(i)}
+              onClick={() => onSelect(i)}
             >
               <img src={p.src} alt="" loading="lazy" draggable="false" />
             </button>

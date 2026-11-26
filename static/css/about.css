@@ -1,0 +1,28 @@
+/* about: text flows into the side profile of a hario switch, after the sketch:
+   cone (0–65%, 100%→38% wide), neck (65–72%), flange (72–82%, 66% wide), base (82%+, 42% wide). Justified so the edges read as lines.
+   The floats run past the container so overflow keeps the base width. */
+.about { position: absolute; inset: 0; overflow-y: auto; } /* short screens scroll the text */
+.about-shape {
+  --about-w: min(66vh, calc(100vw - var(--gx) - var(--gr) - 4rem));
+  position: absolute;
+  /* centred on the viewport like the team disc, but never left of the index column */
+  left: max(50vw, calc(var(--gx) + 2rem + var(--about-w) / 2)); top: 20vh;
+  width: var(--about-w); height: 44vh;
+  transform: translateX(-50%);
+  text-align: justify;
+  text-align-last: center;
+  hyphens: auto;
+  -webkit-hyphenate-limit-before: 3; -webkit-hyphenate-limit-after: 3; hyphenate-limit-chars: 7 3 3;
+  font-family: var(--pk);
+  font-size: clamp(0.9rem, 2.1vh, 1.3rem);
+  line-height: 1.3;
+  color: var(--txt);
+  text-shadow: 1px 1px 0 var(--txt-shadow);
+}
+.about-shape .sl, .about-shape .sr { display: block; width: 50%; height: 160%; }
+.about-shape .sl { float: left; shape-outside: polygon(0 0, 62% 40.6%, 62% 45%, 34% 45%, 34% 51.25%, 58% 51.25%, 58% 100%, 0 100%); }
+.about-shape .sr { float: right; shape-outside: polygon(100% 0, 38% 40.6%, 38% 45%, 66% 45%, 66% 51.25%, 42% 51.25%, 42% 100%, 100% 100%); }
+.about-shape p { margin: 0 0 0.35em; }
+.about-shape strong { color: var(--red); }
+.about-shape a { color: var(--red); text-decoration: underline; }
+

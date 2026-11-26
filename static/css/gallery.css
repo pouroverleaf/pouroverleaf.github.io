@@ -1,0 +1,73 @@
+/* gallery: one big photo, thumbnail bar under it */
+html[data-pane="gallery"] .percolation { opacity: 0.5; }
+.gallery { position: absolute; inset: 0; }
+.stage {
+  position: absolute;
+  left: 0; right: 0;
+  top: 10vh; height: 62vh;
+  display: grid;
+  place-items: center;
+}
+.photo {
+  margin: 0;
+  padding: 4px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  cursor: zoom-in;
+  animation: fade 0.25s var(--ease);
+}
+@keyframes fade { from { opacity: 0; } }
+.photo img { display: block; width: auto; height: auto; max-height: calc(62vh - 14px); max-width: min(74vw, calc(100vw - 24rem)); border-radius: 2px; user-select: none; }
+.strip {
+  position: absolute;
+  left: 50%; bottom: calc(var(--gy) + 0.4rem);
+  transform: translateX(-50%);
+  max-width: calc(100vw - 4rem);
+  overflow: hidden;
+}
+.strip-row { display: flex; gap: 0.5rem; width: max-content; } /* moved per frame by GalleryPane */
+.thumb {
+  flex: none;
+  padding: 2px;
+  background: var(--paper);
+  border: 2px solid var(--line);
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.2s, border-color 0.2s;
+}
+.thumb img { display: block; height: 7vh; width: auto; border-radius: 2px; }
+.thumb:hover { opacity: 1; }
+.thumb.is-selected { opacity: 1; border-color: var(--ink); box-shadow: 0 0 0 2px var(--yellow); }
+.strip-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); }
+.gallery .empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 1rem;
+  background: rgba(246, 240, 230, 0.94);
+  cursor: zoom-out;
+  animation: rise 0.25s var(--ease);
+}
+.lightbox .photo { cursor: zoom-out; }
+.lightbox .photo img { max-height: 84vh; max-width: 90vw; }
+
+/* vim command line (":3", ":gal") */
+.cmdline {
+  position: fixed;
+  left: 2rem; bottom: 0.8rem;
+  z-index: 7;
+  padding: 0.15rem 0.6rem;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  font-family: var(--pk);
+  font-size: 1rem;
+  color: var(--ink);
+}
+.cmdline i { display: inline-block; width: 0.55em; height: 1em; margin-left: 1px; vertical-align: -0.15em; background: var(--red); animation: blink 1s steps(2) infinite; }
+

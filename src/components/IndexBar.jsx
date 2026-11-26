@@ -10,7 +10,6 @@ export default function IndexBar() {
   // Wide: put the left frame line as far past the wordmark as the logo is from the viewport edge.
   // Narrow: the bar is a top row; publish its height so panes can lay out beneath it.
   useEffect(() => {
-    const el = brand.current;
     const root = document.documentElement;
     const place = () => {
       if (innerWidth <= NARROW) {
@@ -19,11 +18,9 @@ export default function IndexBar() {
         return;
       }
       root.style.removeProperty('--nav-h');
-      const r = el.getBoundingClientRect();
-      root.style.setProperty('--gx', `${Math.round(r.right + r.left)}px`);
+      root.style.setProperty('--gx', '11rem');
     };
     const ro = new ResizeObserver(place);
-    ro.observe(el);
     ro.observe(bar.current);
     addEventListener('resize', place);
     place();

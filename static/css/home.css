@@ -1,0 +1,79 @@
+/* home */
+.home-foot { display: contents; }
+.globe-wrap { position: absolute; inset: -12vh 0 0 0; } /* overshoots the top so no canvas edge is ever visible; centre sits 6vh above the middle */
+.globe { position: relative; width: 100%; height: 100%; }
+.globe canvas { display: block; width: 100%; height: 100%; }
+
+.home-line {
+  position: absolute;
+  left: calc(var(--gx) + 2rem); bottom: var(--gy);
+  margin: 0;
+  font-family: var(--px);
+  font-weight: 500;
+  font-size: clamp(1.4rem, 2.6vw, 2.4rem);
+  line-height: 1.1;
+  color: var(--ink);
+  text-shadow: 2px 2px 0 var(--txt-shadow);
+}
+.home-line::after { content: ""; display: block; width: 3rem; height: 3px; background: var(--red); margin-top: 1rem; }
+
+.map-key {
+  position: absolute;
+  right: calc(var(--gr) + 2rem); top: 50%;
+  transform: translateY(-50%);
+  width: 17rem;
+  pointer-events: none; /* only the rows and the point card take clicks; the globe shows through the rest */
+}
+.map-key > * { pointer-events: auto; }
+/* rows are as wide as the longest label and sit against the right edge, so they clear the globe on 4:3 screens */
+.tabs { display: grid; grid-template-columns: max-content; width: max-content; margin-left: auto; }
+.tabs > button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.2rem;
+  border-bottom: 1px solid var(--line-2);
+  font-family: var(--px);
+  font-size: 1rem;
+  color: var(--mute);
+  transition: color 0.25s;
+}
+.tabs > button i { width: 9px; height: 9px; border-radius: 50%; opacity: 0.35; transition: opacity 0.25s, transform 0.25s; }
+.tabs > button small { margin-left: auto; font-size: 0.68rem; }
+.tabs > button:hover, .tabs > button.is-active { color: var(--ink); }
+.tabs > button.is-active i { opacity: 1; transform: scale(1.3); }
+.tabs > button.is-active { box-shadow: inset 0 -2px var(--red); }
+
+.point-card { margin-top: 1.2rem; font-size: 1rem; }
+.point-card strong { display: block; padding-right: 1.2rem; margin-bottom: 0.15rem; }
+.point-card .close { position: absolute; top: 0.3rem; right: 0.7rem; font-size: 1.1rem; color: var(--mute); text-shadow: none; }
+
+.session {
+  position: absolute;
+  right: calc(var(--gr) + 2rem); bottom: var(--gy);
+  width: min(34rem, calc(100vw - var(--gx) - var(--gr) - 4rem - 15rem)); /* 4rem gutters + room for the headline */
+  font-size: 1rem;
+}
+.session p + p { margin-top: 0.35rem; }
+.session .rel { color: var(--red); }
+.session .rel.live::before { content: "● "; }
+
+.cue {
+  position: fixed;
+  z-index: 5;
+  font-family: var(--px);
+  font-size: 1rem;
+  letter-spacing: 0;
+  color: var(--mute);
+  transition: color 0.25s;
+}
+.cue:hover { color: var(--red); }
+.cue-up { top: 2rem; right: calc(var(--gr) + 2rem); }
+.cue-down { bottom: 1.3rem; right: calc(var(--gr) + 2rem); }
+html[data-pane="home"] .cue-down { right: auto; left: 50%; transform: translateX(-50%); }
+.cue .arr { display: inline-block; animation: bob 1.8s ease-in-out infinite; }
+.cue .arr.up { animation-name: bob-up; }
+@keyframes bob { 50% { transform: translateY(4px); } }
+@keyframes bob-up { 50% { transform: translateY(-4px); } }
+
