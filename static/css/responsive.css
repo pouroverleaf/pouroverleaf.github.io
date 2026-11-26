@@ -8,7 +8,7 @@
    the counter shows the position) and the reading box takes the width. */
 @media (max-width: 1000px) {
   :root { --gx: 0px; --gr: 0px; --gy: 3.5rem; --nav-h: 4.5rem; }
-  .frame, .cue { display: none; }
+  .cue { display: none; }
   .index {
     width: auto; right: 0; bottom: auto;
     flex-direction: row; flex-wrap: wrap; align-items: center;

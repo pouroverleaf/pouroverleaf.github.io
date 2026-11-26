@@ -60,7 +60,11 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
         const r = cardRadius(modes[mode], H);
         if (mode === LOGS) {
           const ang = slotAngle(i);
-          return [c[0] + r * Math.cos(ang), c[1] + r * Math.sin(ang), 0, 1, clamp01(1 - (Math.abs(ang) - 1.0) / 0.22)];
+          // With few logs each copy fades out as it leaves a window one loop wide, so the wrap is a
+          // crossfade instead of a card vanishing at one end and popping in at the other.
+          const n = countRef.current;
+          const loop = n <= HALF * 2 ? clamp01(n / 2 + 0.5 - Math.abs(ang / STEP)) : 1;
+          return [c[0] + r * Math.cos(ang), c[1] + r * Math.sin(ang), 0, 1, loop * clamp01(1 - (Math.abs(ang) - 1.0) / 0.22)];
         }
         const ang = memberAngle(seedOf(i));
         return [c[0] + r * Math.cos(ang), c[1] + r * Math.sin(ang), 0, 0.85, 0]; // copies leave the seat upright
@@ -89,7 +93,7 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
         el.style.transform = `translate(-50%,-50%) translate(${x}px,${y}px) rotate(${rot}rad) scale(${sc})`;
         el.style.opacity = op;
         // Faded cards are inert: no pointer events, no tab stop, hidden from assistive tech.
-        const off = op <= 0.5;
+        const off = op < 0.3;
         if (el.inert !== off) el.inert = off;
       };
 
@@ -102,8 +106,8 @@ export default function Roundtable({ logs, logIndex, onSelectLog }) {
   return (
     <div className="cards">
       {SLOTS.map((j, i) => {
-        // With few logs, show each one once instead of repeating it around the arc.
-        if (!N || j < -Math.floor((N - 1) / 2) || j > Math.ceil((N - 1) / 2)) return null;
+        // With few logs, render one loop's worth of slots (plus the copy fading in at each end).
+        if (!N || Math.abs(j) > Math.ceil(N / 2)) return null;
         const abs = base + j;
         const log = logs[mod(abs, N)];
         return (

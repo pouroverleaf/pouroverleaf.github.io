@@ -108,10 +108,6 @@ dl, dd, p { margin: 0; }
 /* layers */
 .percolation { position: fixed; inset: 0; z-index: 0; pointer-events: none; transition: opacity var(--slide) var(--ease); }
 html[data-pane="about"] .percolation, html[data-pane="team"] .percolation, html[data-pane="map"] .percolation { opacity: 0.7; }
-.frame { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
-.frame::before, .frame::after { content: ""; position: absolute; background: var(--line-2); }
-.frame::before { left: var(--gx); top: 0; bottom: 0; width: 1px; }
-.frame::after { right: var(--gr); top: 0; bottom: 0; width: 1px; }
 .pane { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
 .cards { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
 .index { z-index: 5; }

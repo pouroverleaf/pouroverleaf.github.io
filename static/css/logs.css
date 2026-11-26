@@ -11,6 +11,7 @@
   text-align: left;
   will-change: transform, opacity;
   transition: box-shadow 0.3s;
+  pointer-events: auto; /* .cards is click-through; faded cards are made inert in Roundtable.jsx */
 }
 .log-card .meta { font-family: var(--px); font-size: max(0.7rem, 1.5vh); letter-spacing: 0; color: var(--mute); text-shadow: none; display: flex; gap: 0.8em; }
 .log-card .meta b { font-weight: 400; color: var(--red); }
