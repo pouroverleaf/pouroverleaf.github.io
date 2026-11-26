@@ -6,4 +6,4 @@ img: /img/team/ryan.jpg
 spot: 1
 ---
 
-a retard in motion. 
+drive on the wrong side of the road
