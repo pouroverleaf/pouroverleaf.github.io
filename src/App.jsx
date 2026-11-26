@@ -1,26 +1,34 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PANES, goTo, setPosition, subscribe, getTransition, position, mix, initFromHash, usePaneIndex } from './lib/panes';
 import { track } from './lib/track';
+import { autostart } from './lib/audio';
 import { byTag } from './lib/logs';
-import { GALLERY } from './lib/content';
+import { GALLERY, LAYERS } from './lib/content';
 import { modeFor } from './lib/layout';
 import Percolation, { setPercolationMask } from './components/Percolation';
 import Roundtable from './components/Roundtable';
 import IndexBar, { ScrollCue } from './components/IndexBar';
 import HomePane from './panes/HomePane';
 import AboutPane from './panes/AboutPane';
+import TeamPane from './panes/TeamPane';
+import MapPane from './panes/MapPane';
+import GlobeStage from './components/GlobeStage';
 import ResearchPane from './panes/ResearchPane';
 import GalleryPane from './panes/GalleryPane';
 
 initFromHash();
+autostart();
 const mod = (n, m) => ((n % m) + m) % m;
-const LOGS_PANE = 3;
-const GALLERY_PANE = 4;
+const TEAM_PANE = 2;
+const MAP_PANE = 3;
+const LOGS_PANE = 4;
+const GALLERY_PANE = 5;
 // The whole site is one continuous track: home 0, about 1, team 2, then one unit per log, then one
 // unit per photo. Wheel and touch move along it 1:1; when input stops it eases to the nearest stop.
 const PX_PER_UNIT = 400; // wheel pixels per pane / log / photo
 const SNAP_BIAS = 0.2; // past this fraction in the direction you were scrolling, settle on the next stop
+const MAP_PULL = 0.6; // the map pane snaps harder: settling anywhere this close to it lands on it
 // Elements with class "scroll" (log body, about text) scroll natively when they overflow; wheel and
 // touch gestures that start inside one are left to the browser instead of moving panes or items.
 const scrollerOf = (target) => {
@@ -45,6 +53,19 @@ export default function App() {
   const selectLog = (j) => { logRef.current = j; setLogIndex(j); };
   const selectPhoto = (j) => { photoRef.current = j; setPhotoIndex(j); };
   const pickTag = (t) => { setTag(t); selectLog(0); track.logPos = 0; };
+  // Map layers and the clicked pin: shared by the globe (GlobeStage) and the map pane's key.
+  const [layersOn, setLayersOn] = useState(() => new Set(LAYERS.map((l) => l.key)));
+  const [pin, setPin] = useState(null);
+  const points = useMemo(
+    () => LAYERS.filter((l) => layersOn.has(l.key)).flatMap((l) => l.points.map((p) => ({ ...p, color: l.color, layer: l.key }))),
+    [layersOn],
+  );
+  const toggleLayer = (key) => {
+    const next = new Set(layersOn);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    setLayersOn(next);
+    if (pin && !next.has(pin.layer)) setPin(null);
+  };
   // Filled by the input effect: clicks on a log card or a thumbnail move along the track too.
   const trackApi = useRef({ pickLog: selectLog, pickPhoto: selectPhoto });
 
@@ -113,7 +134,7 @@ export default function App() {
       if (snapTarget === null) return;
       const dt = Math.min(0.05, (now - (snapLast || now)) / 1000);
       snapLast = now;
-      u += (snapTarget - u) * (1 - Math.exp(-dt * 9));
+      u += (snapTarget - u) * (1 - Math.exp(-dt * (snapTarget === MAP_PANE ? 13 : 9))); // quicker into the map
       if (Math.abs(snapTarget - u) < 0.002) { u = snapTarget; snapTarget = null; }
       apply();
       snapRaf = snapTarget === null ? 0 : requestAnimationFrame(snapTick);
@@ -125,6 +146,7 @@ export default function App() {
     // Settle on the next stop in the direction of travel once past SNAP_BIAS, else fall back.
     const settle = () => {
       idleTimer = 0;
+      if (Math.abs(u - MAP_PANE) < MAP_PULL) return snapTo(MAP_PANE);
       snapTo(lastDir > 0 ? Math.ceil(u - SNAP_BIAS) : lastDir < 0 ? Math.floor(u + SNAP_BIAS) : Math.round(u));
     };
     const move = (units) => {
@@ -200,7 +222,7 @@ export default function App() {
       const down = ['ArrowDown', 'PageDown', ' ', 'j', 'J'].includes(e.key);
       const up = ['ArrowUp', 'PageUp', 'k', 'K'].includes(e.key);
       const right = e.key === 'ArrowRight' || e.key === 'l', left = e.key === 'ArrowLeft' || e.key === 'h';
-      if (e.key === 'Escape' && s.index === LOGS_PANE) return goTo(2);
+      if (e.key === 'Escape' && s.index === LOGS_PANE) return goTo(MAP_PANE);
       if (e.key === 'G') {
         e.preventDefault();
         const n = performance.now() - countAt < 1000 && count ? Number(count) : 0;
@@ -282,9 +304,12 @@ export default function App() {
     <>
       <Percolation />
       <div className="frame" aria-hidden="true" />
+      {/* before the panes so they stack above it: the team photo stands in front of the globe */}
+      <GlobeStage index={index} points={points} selectedId={pin?.id ?? null} onSelect={setPin} />
       {pane(0, <HomePane active={index === 0} />, ' scroll')} {/* scrolls on landscape phones only (style.css) */}
       {pane(1, <AboutPane />)}
-      {pane(2, null)}
+      {pane(TEAM_PANE, <TeamPane active={index === TEAM_PANE} />)}
+      {pane(MAP_PANE, <MapPane enabled={layersOn} onToggle={toggleLayer} selected={pin} onClose={() => setPin(null)} />)}
       {pane(LOGS_PANE, <ResearchPane log={current} n={N ? mod(logIndex, N) : 0} total={N} tag={tag} onTag={pickTag} />)}
       {pane(GALLERY_PANE, <GalleryPane active={index === GALLERY_PANE} index={photoIndex} onSelect={(j) => trackApi.current.pickPhoto(j)} />)}
       <Roundtable logs={logs} logIndex={logIndex} onSelectLog={(j) => trackApi.current.pickLog(j)} />

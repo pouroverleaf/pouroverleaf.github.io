@@ -1,9 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { PANES, goTo, usePaneIndex } from '../lib/panes';
 import { NARROW } from '../lib/layout';
+import { toggle, usePlaying } from '../lib/audio';
 
 export default function IndexBar() {
   const index = usePaneIndex();
+  const playing = usePlaying();
   const bar = useRef(null);
   const brand = useRef(null);
 
@@ -43,6 +45,9 @@ export default function IndexBar() {
           </li>
         ))}
       </ol>
+      <button type="button" className={`sound${playing ? ' is-on' : ''}`} onClick={toggle} aria-pressed={playing}>
+        <span aria-hidden="true">♪</span> <span className="sound-label">sound {playing ? 'on' : 'off'}</span>
+      </button>
     </aside>
   );
 }

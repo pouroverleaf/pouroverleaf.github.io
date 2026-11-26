@@ -1,63 +1,58 @@
-/* home */
-.home-foot { display: contents; }
-.globe-wrap { position: absolute; inset: -12vh 0 0 0; } /* overshoots the top so no canvas edge is ever visible; centre sits 6vh above the middle */
-.globe { position: relative; width: 100%; height: 100%; }
-.globe canvas { display: block; width: 100%; height: 100%; }
+/* home: headline + next session on the left, ASCII logo (+ event image) on the right, inside the frame */
+.home {
+  position: absolute;
+  top: var(--gy); bottom: var(--gy);
+  left: calc(var(--gx) + 3rem); right: calc(var(--gr) + 3rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 3rem;
+}
+.home-text { display: flex; flex-direction: column; gap: 3rem; max-width: 40rem; }
 
 .home-line {
-  position: absolute;
-  left: calc(var(--gx) + 2rem); bottom: var(--gy);
   margin: 0;
   font-family: var(--px);
   font-weight: 500;
-  font-size: clamp(1.4rem, 2.6vw, 2.4rem);
-  line-height: 1.1;
+  font-size: clamp(2.2rem, 4.6vw, 4.6rem);
+  line-height: 1.08;
   color: var(--ink);
-  text-shadow: 2px 2px 0 var(--txt-shadow);
+  text-shadow: 3px 3px 0 var(--txt-shadow);
 }
-.home-line::after { content: ""; display: block; width: 3rem; height: 3px; background: var(--red); margin-top: 1rem; }
+.home-line::after { content: ""; display: block; width: 4rem; height: 4px; background: var(--red); margin-top: 1.4rem; }
 
-.map-key {
-  position: absolute;
-  right: calc(var(--gr) + 2rem); top: 50%;
-  transform: translateY(-50%);
-  width: 17rem;
-  pointer-events: none; /* only the rows and the point card take clicks; the globe shows through the rest */
+.home-art { width: 54vh; display: flex; flex-direction: column; align-items: center; gap: 2vh; pointer-events: none; } /* fixed width so the left column does not jump when an image comes and goes */
+.home-logo { position: relative; display: grid; place-items: center; }
+/* audio bars around the ring (RingBars.jsx), centred on the disc and free to spill past it */
+.ring-bars { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+/* diameter = 36 × font size (AsciiDisc.jsx): 1.45vh → ~52% of the viewport height */
+.home-disc pre { margin: 0; font-family: var(--mono); font-size: 1.45vh; line-height: 1.45vh; color: rgba(29, 40, 71, 0.35); }
+.home-disc .r { color: var(--ink); }
+.home-disc .l { color: var(--red); }
+.home-disc .d { color: rgba(105, 56, 29, 0.35); }
+/* with an event image the logo shrinks to make room under it */
+.home-art:has(.home-event-img) .home-disc pre { font-size: 1.1vh; line-height: 1.1vh; }
+.home-event-img {
+  display: block;
+  max-width: 40vh; max-height: 26vh;
+  padding: 4px;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  animation: fade 0.4s var(--ease);
 }
-.map-key > * { pointer-events: auto; }
-/* rows are as wide as the longest label and sit against the right edge, so they clear the globe on 4:3 screens */
-.tabs { display: grid; grid-template-columns: max-content; width: max-content; margin-left: auto; }
-.tabs > button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  padding: 0.5rem 0.2rem;
-  border-bottom: 1px solid var(--line-2);
-  font-family: var(--px);
-  font-size: 1rem;
-  color: var(--mute);
-  transition: color 0.25s;
-}
-.tabs > button i { width: 9px; height: 9px; border-radius: 50%; opacity: 0.35; transition: opacity 0.25s, transform 0.25s; }
-.tabs > button small { margin-left: auto; font-size: 0.68rem; }
-.tabs > button:hover, .tabs > button.is-active { color: var(--ink); }
-.tabs > button.is-active i { opacity: 1; transform: scale(1.3); }
-.tabs > button.is-active { box-shadow: inset 0 -2px var(--red); }
 
-.point-card { margin-top: 1.2rem; font-size: 1rem; }
-.point-card strong { display: block; padding-right: 1.2rem; margin-bottom: 0.15rem; }
-.point-card .close { position: absolute; top: 0.3rem; right: 0.7rem; font-size: 1.1rem; color: var(--mute); text-shadow: none; }
-
-.session {
-  position: absolute;
-  right: calc(var(--gr) + 2rem); bottom: var(--gy);
-  width: min(34rem, calc(100vw - var(--gx) - var(--gr) - 4rem - 15rem)); /* 4rem gutters + room for the headline */
-  font-size: 1rem;
-}
+.session-wrap { width: min(34rem, 100%); }
+.session { font-size: 1rem; animation: fade 0.35s var(--ease); }
 .session p + p { margin-top: 0.35rem; }
+.session .session-title { font-family: var(--px); font-size: 1.25rem; color: var(--ink); }
 .session .rel { color: var(--red); }
 .session .rel.live::before { content: "● "; }
+/* cooldown bar: fills while a session is shown, then the box moves to the next one */
+.session-timer { height: 3px; margin: 0.6rem 4px 0; background: var(--line-2); border-radius: 2px; overflow: hidden; }
+.session-timer i { display: block; height: 100%; background: var(--red); transform-origin: left; animation: timer linear forwards; }
+.session-wrap:hover .session-timer i { animation-play-state: paused; }
+@keyframes timer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .cue {
   position: fixed;
@@ -71,7 +66,7 @@
 .cue:hover { color: var(--red); }
 .cue-up { top: 2rem; right: calc(var(--gr) + 2rem); }
 .cue-down { bottom: 1.3rem; right: calc(var(--gr) + 2rem); }
-html[data-pane="home"] .cue-down { right: auto; left: 50%; transform: translateX(-50%); }
+html[data-pane="home"] .cue-down { right: auto; left: var(--mid); transform: translateX(-50%); }
 .cue .arr { display: inline-block; animation: bob 1.8s ease-in-out infinite; }
 .cue .arr.up { animation-name: bob-up; }
 @keyframes bob { 50% { transform: translateY(4px); } }

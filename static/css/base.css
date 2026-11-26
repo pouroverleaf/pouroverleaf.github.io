@@ -30,6 +30,7 @@
   --gx: 19rem; /* left frame line = index column edge; IndexBar.jsx overrides it to sit one edge-gap past the wordmark */
   --gr: 3rem;  /* right margin */
   --gy: 4.5rem; /* top/bottom frame lines */
+  --mid: calc((var(--gx) + 100vw - var(--gr)) / 2); /* centre of the framed area, between the two frame lines */
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -106,13 +107,12 @@ dl, dd, p { margin: 0; }
 
 /* layers */
 .percolation { position: fixed; inset: 0; z-index: 0; pointer-events: none; transition: opacity var(--slide) var(--ease); }
-html[data-pane="about"] .percolation, html[data-pane="team"] .percolation { opacity: 0.7; }
+html[data-pane="about"] .percolation, html[data-pane="team"] .percolation, html[data-pane="map"] .percolation { opacity: 0.7; }
 .frame { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 .frame::before, .frame::after { content: ""; position: absolute; background: var(--line-2); }
 .frame::before { left: var(--gx); top: 0; bottom: 0; width: 1px; }
 .frame::after { right: var(--gr); top: 0; bottom: 0; width: 1px; }
 .pane { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
-.home-foot { display: contents; } /* narrow screens turn it into a row, see the media block at the end */
 .cards { position: fixed; inset: 0; z-index: 4; pointer-events: none; }
 .index { z-index: 5; }
 
@@ -135,7 +135,7 @@ html[data-pane="about"] .percolation, html[data-pane="team"] .percolation { opac
 .brand {
   position: fixed;
   top: 1.1rem;
-  left: 50%;
+  left: var(--mid);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -170,6 +170,9 @@ html[data-pane="about"] .percolation, html[data-pane="team"] .percolation { opac
 }
 .index-list li.is-active button { color: var(--ink); }
 .index-list li.is-active .label::after { width: 100%; }
+/* music toggle (lib/audio.js), under the pane list */
+.sound { margin-top: 2.2rem; align-self: flex-start; font-family: var(--pk); font-size: 0.9rem; color: var(--mute); transition: color 0.3s; }
+.sound:hover, .sound.is-on { color: var(--red); }
 .index-list button:hover { color: var(--ink); }
 
 

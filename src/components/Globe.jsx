@@ -192,7 +192,9 @@ function behindGlobe(p, cam) {
   return t > 0 && t < len;
 }
 
-export default function Globe({ active, points, color, selectedId, onSelect }) {
+// `sizeRef`, if given, gets the sphere's on-screen diameter in px every frame (for overlays such as
+// the team page's audio bars), following zoom.
+export default function Globe({ active, points, color, selectedId, onSelect, fit, sizeRef }) {
   const containerRef = useRef(null);
   const apiRef = useRef(null);
   const onSelectRef = useRef(onSelect);
@@ -214,7 +216,7 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
     // Wide layout (canvas is the whole pane, 112vh tall): 5.7 puts the sphere at ~58% of the viewport height.
     // Narrow layout (a short box under the top bar): fit the sphere to ~82% of the box's shorter side.
     const cw = container.clientWidth || 1, ch = container.clientHeight || 1;
-    const fitDist = innerWidth > NARROW ? 5.7 : 3.54 * Math.max(1, ch / cw);
+    const fitDist = fit ?? (innerWidth > NARROW ? 5.7 : 3.54 * Math.max(1, ch / cw)); // `fit` overrides
     // Debug: ?look=lat,lon,distance starts the camera over a point. Bad values fall back.
     const look = (new URLSearchParams(location.search).get('look') || '').split(',').map(Number);
     const lat = Number.isFinite(look[0]) ? look[0] : 20;
@@ -394,6 +396,11 @@ export default function Globe({ active, points, color, selectedId, onSelect }) {
 
       const dist = camera.position.length();
       if (Math.abs(dist - zoomTarget) > 1e-4) camera.position.setLength(dist + (zoomTarget - dist) * ease(13));
+      if (sizeRef) {
+        // unit sphere at distance d spans tan(asin(1/d)) / tan(fov/2) of the canvas height
+        const d = camera.position.length();
+        sizeRef.current = (Math.tan(Math.asin(Math.min(1, 1 / d))) / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))) * canvas.clientHeight;
+      }
 
       if (tween) {
         const k = Math.min(1, (performance.now() - tween.start) / 800);

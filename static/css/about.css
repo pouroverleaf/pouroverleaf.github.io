@@ -5,8 +5,8 @@
 .about-shape {
   --about-w: min(66vh, calc(100vw - var(--gx) - var(--gr) - 4rem));
   position: absolute;
-  /* centred on the viewport like the team disc, but never left of the index column */
-  left: max(50vw, calc(var(--gx) + 2rem + var(--about-w) / 2)); top: 20vh;
+  /* centred in the frame like the team ring, but never left of the index column */
+  left: max(var(--mid), calc(var(--gx) + 2rem + var(--about-w) / 2)); top: 20vh;
   width: var(--about-w); height: 44vh;
   transform: translateX(-50%);
   text-align: justify;

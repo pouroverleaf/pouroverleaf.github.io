@@ -8,7 +8,8 @@ export const DISC_PX = DISC_COLS * 0.6 * DISC_FONT;
 const ROWS = Math.round(DISC_COLS * 0.6);
 const N = 96;
 
-const AsciiDisc = forwardRef(function AsciiDisc(_, ref) {
+// `className` replaces the default "disc"; `fluid` leaves the font size to CSS (diameter = 36 × font size).
+const AsciiDisc = forwardRef(function AsciiDisc({ className = 'disc', fluid = false }, ref) {
   const inner = useRef(null);
 
   useEffect(() => {
@@ -63,8 +64,8 @@ const AsciiDisc = forwardRef(function AsciiDisc(_, ref) {
   }, []);
 
   return (
-    <div ref={ref} className="disc" aria-hidden="true">
-      <pre ref={inner} style={{ fontSize: DISC_FONT, lineHeight: `${DISC_FONT}px` }} />
+    <div ref={ref} className={className} aria-hidden="true">
+      <pre ref={inner} style={fluid ? undefined : { fontSize: DISC_FONT, lineHeight: `${DISC_FONT}px` }} />
     </div>
   );
 });

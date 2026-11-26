@@ -2,6 +2,7 @@
 import homeMd from '../content/home.md?raw';
 import sessionMd from '../content/session.md?raw';
 import siteMd from '../content/site.md?raw';
+import eventsMd from '../content/events.md?raw';
 
 // `key: value` lines between --- fences. Values are strings.
 export function parseFront(raw) {
@@ -48,15 +49,30 @@ export const SESSION = {
   bean: { farm: sm.bean, country: sm.country, process: sm.process, variety: sm.variety, roaster: sm.roaster, roasted: sm.roasted, notes: sm.notes },
 };
 
+// events.md: one-off events in a table; `image` names a file in events/.
+const eventImages = import.meta.glob('../content/events/*.{jpg,jpeg,png,webp,gif}', { query: '?url', import: 'default', eager: true });
+const imageByName = Object.fromEntries(Object.entries(eventImages).map(([path, url]) => [path.split('/').pop(), url]));
+export const EVENTS = parseTable(parseFront(eventsMd).body)
+  .filter((e) => /^\d{4}-\d{2}-\d{2}$/.test(String(e.date).trim()))
+  .map((e) => ({
+    date: String(e.date).trim(),
+    time: String(e.time ?? ''),
+    title: String(e.title ?? ''),
+    where: String(e.where ?? ''),
+    note: String(e.note ?? ''),
+    image: e.image ? imageByName[String(e.image).trim()] ?? null : null,
+  }));
+
 // site.md
 const si = parseFront(siteMd).meta;
 export const SITE = { instagram: { handle: si.instagram, url: si.instagram_url } };
 
-// team/*.md: one member per file, ordered by filename. Body is the bio.
+// team/*.md: one member per file, ordered by filename. Body is the bio. `spot` is where they stand in
+// the group photo (static/img/team/Team.png), 1 = leftmost; it defaults to the file order.
 const teamFiles = import.meta.glob('../content/team/*.md', { query: '?raw', import: 'default', eager: true });
-export const TEAM = sorted(teamFiles).map(([path, text]) => {
+export const TEAM = sorted(teamFiles).map(([path, text], i) => {
   const { meta, body } = parseFront(text);
-  return { id: slug(path), name: meta.name, title: meta.title, color: meta.color, img: meta.img, bio: body.trim() };
+  return { id: slug(path), name: meta.name, title: meta.title, color: meta.color, img: meta.img, spot: Number(meta.spot) || i + 1, bio: body.trim() };
 });
 
 // places/*.md: one globe layer per file with a table of points.

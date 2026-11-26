@@ -3,7 +3,7 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
 .gallery { position: absolute; inset: 0; }
 .stage {
   position: absolute;
-  left: 0; right: 0;
+  left: var(--gx); right: var(--gr);
   top: 10vh; height: 62vh;
   display: grid;
   place-items: center;
@@ -21,9 +21,9 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
 .photo img { display: block; width: auto; height: auto; max-height: calc(62vh - 14px); max-width: min(74vw, calc(100vw - 24rem)); border-radius: 2px; user-select: none; }
 .strip {
   position: absolute;
-  left: 50%; bottom: calc(var(--gy) + 0.4rem);
+  left: var(--mid); bottom: calc(var(--gy) + 0.4rem);
   transform: translateX(-50%);
-  max-width: calc(100vw - 4rem);
+  max-width: calc(100vw - var(--gx) - var(--gr) - 4rem);
   overflow: hidden;
 }
 .strip-row { display: flex; gap: 0.5rem; width: max-content; } /* moved per frame by GalleryPane */
@@ -39,8 +39,8 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
 .thumb img { display: block; height: 7vh; width: auto; border-radius: 2px; }
 .thumb:hover { opacity: 1; }
 .thumb.is-selected { opacity: 1; border-color: var(--ink); box-shadow: 0 0 0 2px var(--yellow); }
-.strip-pos { position: absolute; left: 50%; bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); }
-.gallery .empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.strip-pos { position: absolute; left: var(--mid); bottom: calc(var(--gy) - 1.6rem); transform: translateX(-50%); }
+.gallery .empty { position: absolute; left: var(--mid); top: 50%; transform: translate(-50%, -50%); }
 .lightbox {
   position: fixed;
   inset: 0;

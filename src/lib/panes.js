@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export const PANES = ['home', 'about', 'team', 'logs', 'gallery'];
+export const PANES = ['home', 'about', 'team', 'map', 'logs', 'gallery'];
 export const COMMIT = 0.42; // drag further than this (in panes) and the move commits
 const DURATION = 760;
 

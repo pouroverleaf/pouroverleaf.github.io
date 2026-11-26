@@ -16,10 +16,8 @@
     background: rgba(246, 240, 230, 0.85); backdrop-filter: blur(6px);
   }
   .brand {
-    position: fixed;
-    top: 0.45rem;
-    left: 50%;
-    transform: translateX(-50%);
+    position: static; /* in the row, left of the pane list, so six panes + sound never run into it */
+    transform: none;
     font-size: 1.05rem;
     gap: 0.45rem;
   }
@@ -27,17 +25,31 @@
   .index-list .num { font-size: 0.75rem; }
   .index-list { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; margin-left: auto; }
   .index-list button { font-size: 1rem; gap: 0.35rem; }
+  .sound { margin: 0; align-self: center; font-size: 0.9rem; }
 
-  /* home: globe, then headline beside the layer key, next session at the bottom */
-  .pane-home { display: flex; flex-direction: column; padding: calc(var(--nav-h) + 1.5vh) 1.2rem 1.2rem; }
-  .globe-wrap { position: relative; inset: auto; flex: none; width: 100%; height: min(80vw, 45vh); }
-  .home-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-top: 1.5vh; }
-  .home-line { position: static; font-size: clamp(1.2rem, 5.5vw, 1.8rem); }
-  .home-line::after { margin-top: 0.6rem; }
-  .map-key { position: static; transform: none; width: auto; flex: none; }
-  .tabs > button { padding: 0.3rem 0.1rem; font-size: 0.9rem; }
-  .point-card { position: absolute; left: 1.2rem; right: 1.2rem; bottom: 1.2rem; margin: 0; z-index: 1; } /* over the session box */
-  .session { position: static; margin-top: auto; width: auto; font-size: 0.95rem; }
+  /* home: logo (and event image), then the headline, then the next session */
+  .pane-home { padding: calc(var(--nav-h) + 1.5vh) 1.2rem 1.2rem; }
+  .home { position: static; display: flex; flex-direction: column-reverse; justify-content: flex-end; align-items: stretch; gap: 2.5vh; min-height: 100%; }
+  .home-text { gap: 2.5vh; max-width: none; }
+  .home-line { font-size: clamp(1.6rem, 7vw, 2.6rem); }
+  .home-line::after { margin-top: 0.8rem; }
+  .home-disc pre { font-size: min(2vw, 1.15vh); line-height: min(2vw, 1.15vh); }
+  .home-art:has(.home-event-img) .home-disc pre { font-size: min(1.5vw, 0.85vh); line-height: min(1.5vw, 0.85vh); }
+  .home-art { width: auto; }
+  .home-event-img { max-width: 80vw; max-height: 22vh; }
+  .session-wrap { width: 100%; }
+  .session { font-size: 0.95rem; }
+
+  /* team: photo across the bottom with the intro over its legs; map: layer key at the top */
+  .team-intro { bottom: 0.3rem; width: 99vw; padding: 0.9rem 1.2rem; } /* photo is 96vw; its bottom edge is 1vh up */
+  .team-intro-line { font-size: 1.3rem; }
+  .team-intro-line .fine { font-size: 0.95rem; }
+  .map-key { top: calc(var(--nav-h) + 1rem); bottom: auto; right: 1.2rem; left: 1.2rem; width: auto; gap: 0.6rem; }
+  .tabs { display: flex; flex-wrap: wrap; justify-content: center; margin: 0 auto; }
+  .tabs > button { width: auto; padding: 0.3rem 0.4rem; font-size: 0.9rem; }
+  .point-card { margin: 0; }
+  .team-photo { bottom: 1vh; height: auto; width: 96vw; max-width: none; }
+  .member-card { width: min(18rem, 70vw); }
 
   /* about */
   .about-shape { left: 50%; top: calc(var(--nav-h) + 2vh); width: 92vw; }
@@ -56,7 +68,7 @@
 
 /* phones: logo and bare labels in the bar so it stays one row */
 @media (max-width: 480px) {
-  .brand span, .index-list .num { display: none; }
+  .brand span, .index-list .num, .sound-label { display: none; }
   .index { gap: 0.4rem 0.6rem; }
   .index-list { gap: 0.2rem 0.7rem; }
   .index-list button { font-size: 0.95rem; }
