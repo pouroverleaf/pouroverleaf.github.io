@@ -5,7 +5,7 @@ import { track } from './lib/track';
 import { autostart } from './lib/audio';
 import { byTag } from './lib/logs';
 import { GALLERY, LAYERS } from './lib/content';
-import { modeFor } from './lib/layout';
+import { modeFor, cardRadius, NARROW } from './lib/layout';
 import Percolation, { setPercolationMask } from './components/Percolation';
 import Roundtable from './components/Roundtable';
 import IndexBar, { ScrollCue } from './components/IndexBar';
@@ -24,9 +24,10 @@ const TEAM_PANE = 2;
 const MAP_PANE = 3;
 const LOGS_PANE = 4;
 const GALLERY_PANE = 5;
-// The whole site is one continuous track: home 0, about 1, team 2, then one unit per log, then one
-// unit per photo. Wheel and touch move along it 1:1; when input stops it eases to the nearest stop.
-const PX_PER_UNIT = 400; // wheel pixels per pane / log / photo
+// The whole site is one continuous track: home 0, about 1, team 2, map 3, logs 4, then one unit per
+// photo. Logs browse on their own wheel (spinLogs), off the track. Wheel and touch move along it 1:1; when input stops it eases to the nearest stop.
+const PX_PER_UNIT = 400; // wheel pixels per pane / photo
+const PX_PER_LOG = 160; // wheel pixels per log on the log wheel, which steps one log at a time
 const SNAP_BIAS = 0.2; // past this fraction in the direction you were scrolling, settle on the next stop
 const MAP_PULL = 0.6; // the map pane snaps harder: settling anywhere this close to it lands on it
 // Elements with class "scroll" (log body, about text) scroll natively when they overflow; wheel and
@@ -52,7 +53,7 @@ export default function App() {
   const N = logs.length;
   const selectLog = (j) => { logRef.current = j; setLogIndex(j); };
   const selectPhoto = (j) => { photoRef.current = j; setPhotoIndex(j); };
-  const pickTag = (t) => { setTag(t); selectLog(0); track.logPos = 0; };
+  const pickTag = (t) => { setTag(t); selectLog(0); trackApi.current.resetLogs?.(); };
   // Map layers and the clicked pin: shared by the globe (GlobeStage) and the map pane's key.
   const [layersOn, setLayersOn] = useState(() => new Set(LAYERS.map((l) => l.key)));
   const [pin, setPin] = useState(null);
@@ -95,39 +96,69 @@ export default function App() {
 
   useEffect(() => {
     const Ls = Math.max(N, 1), Gs = Math.max(GALLERY.length, 1);
-    const LOG0 = LOGS_PANE, GAL0 = LOGS_PANE + Ls, END = GAL0 + Gs - 1;
+    const GAL0 = LOGS_PANE, END = GAL0 + Gs; // u = GAL0 + 1 + i is photo i; logs are one stop at LOGS_PANE
     const clampU = (v) => Math.max(0, Math.min(END, v));
     // Where the track is for the current pane and selection (after a goTo, a click, a tag change).
     const uFromState = () => {
       const i = getTransition().index;
-      if (i < LOGS_PANE) return i;
-      if (i === LOGS_PANE) return LOG0 + mod(logRef.current, Ls);
-      return GAL0 + mod(photoRef.current, Gs);
+      return i <= LOGS_PANE ? i : GAL0 + 1 + mod(photoRef.current, Gs);
     };
     let u = uFromState(), applying = false, lastDir = 0, idleTimer = 0, snapTarget = null, snapRaf = 0, snapLast = 0;
+    // The log wheel spins on its own, off the track. lu is the unbounded log position, so it wraps
+    // from the last log back to the first forever.
+    let lu = 0, luTarget = null, luRaf = 0, luLast = 0;
 
-    // Track position → pane position + fractional log / photo position.
+    // Track position → pane position + fractional photo position.
     const apply = () => {
-      let p, lp = 0, gp = 0;
-      if (u <= LOG0) p = u;
-      else if (u <= LOG0 + Ls - 1) { p = LOGS_PANE; lp = u - LOG0; }
-      else if (u <= GAL0) { p = LOGS_PANE + (u - (LOG0 + Ls - 1)); lp = Ls - 1; }
-      else { p = GALLERY_PANE; lp = Ls - 1; gp = u - GAL0; }
-      track.logPos = lp;
+      let p = u, gp = 0;
+      if (u > GAL0 + 1) { p = GALLERY_PANE; gp = u - GAL0 - 1; }
       track.photoPos = gp;
-      const li = Math.round(lp), pi = Math.round(gp);
-      if (mod(logRef.current, Ls) !== li) selectLog(li);
+      const pi = Math.round(gp);
       if (mod(photoRef.current, Gs) !== pi) selectPhoto(pi);
       applying = true;
       setPosition(p);
       applying = false;
     };
+    const stopLogSnap = () => { luTarget = null; cancelAnimationFrame(luRaf); luRaf = 0; };
     const syncFromState = () => {
+      stopLogSnap();
       u = uFromState();
-      track.logPos = mod(logRef.current, Ls);
+      track.logPos = lu = mod(logRef.current, Ls);
       track.photoPos = mod(photoRef.current, Gs);
     };
     syncFromState();
+    const setLu = (v) => {
+      track.logPos = lu = v;
+      const li = Math.round(v);
+      if (logRef.current !== li) selectLog(li);
+    };
+    const logSnapTick = (now) => {
+      if (luTarget === null) return;
+      const dt = Math.min(0.05, (now - (luLast || now)) / 1000);
+      luLast = now;
+      let v = lu + (luTarget - lu) * (1 - Math.exp(-dt * 9));
+      if (Math.abs(luTarget - v) < 0.002) { v = luTarget; luTarget = null; }
+      setLu(v);
+      luRaf = luTarget === null ? 0 : requestAnimationFrame(logSnapTick);
+    };
+    const logSnapTo = (target) => {
+      luTarget = target;
+      if (!luRaf) { luLast = 0; luRaf = requestAnimationFrame(logSnapTick); }
+    };
+    const spinLogs = (units) => { stopLogSnap(); lastDir = Math.sign(units); setLu(lu + units); };
+    const settleLogs = () => {
+      idleTimer = 0;
+      logSnapTo(lastDir > 0 ? Math.ceil(lu - SNAP_BIAS) : lastDir < 0 ? Math.floor(lu + SNAP_BIAS) : Math.round(lu));
+    };
+    // Is (x, y) on the log wheel? The ring of cards plus half a card either side, wide screens only
+    // (narrow screens hide the cards).
+    const onLogWheel = (x, y) => {
+      const s = getTransition();
+      if (s.index !== LOGS_PANE || s.offset || innerWidth <= NARROW) return false;
+      const m = modeFor(LOGS_PANE, innerWidth, innerHeight);
+      const r = cardRadius(m, innerHeight), dist = Math.hypot(x - m.cx * innerWidth, y - m.cy * innerHeight);
+      return dist > r - 0.15 * innerHeight && dist < r + 0.15 * innerHeight;
+    };
 
     const stopSnap = () => { snapTarget = null; cancelAnimationFrame(snapRaf); snapRaf = 0; };
     const snapTick = (now) => {
@@ -151,7 +182,7 @@ export default function App() {
     };
     const move = (units) => {
       if (!units) return;
-      if (getTransition().animating) syncFromState(); // a goTo was running: continue from where it was heading
+      if (getTransition().animating) { u = uFromState(); track.photoPos = mod(photoRef.current, Gs); } // a goTo was running: continue from where it was heading
       stopSnap();
       lastDir = Math.sign(units);
       u = clampU(u + units);
@@ -159,29 +190,40 @@ export default function App() {
     };
 
     // A goTo (index bar, keys, hash) moved the pane: pick the track up from there.
-    const unsub = subscribe(() => { if (!applying) { stopSnap(); syncFromState(); } });
+    const unsub = subscribe(() => { if (!applying) { stopSnap(); u = uFromState(); track.photoPos = mod(photoRef.current, Gs); } });
 
     trackApi.current = {
-      // Roundtable cards pass an unbounded index; the wheel follows the nearest copy, so jump there.
-      pickLog: (abs) => { stopSnap(); selectLog(abs); syncFromState(); },
-      pickPhoto: (i) => { stopSnap(); lastDir = 0; snapTo(GAL0 + mod(i, Gs)); },
+      // Roundtable cards pass an unbounded index near the wheel's position: spin to it.
+      pickLog: (abs) => { lastDir = 0; logSnapTo(abs); },
+      pickPhoto: (i) => { stopSnap(); lastDir = 0; snapTo(GAL0 + 1 + mod(i, Gs)); },
+      resetLogs: () => { stopLogSnap(); track.logPos = lu = 0; },
     };
     const step = (n) => {
-      if (getTransition().animating) syncFromState();
+      if (getTransition().animating) u = uFromState();
       lastDir = n;
       snapTo(Math.round(snapTarget ?? u) + n);
     };
-    const stepLog = step, stepPhoto = step;
+    const stepLog = (n) => { lastDir = n; logSnapTo(Math.round(luTarget ?? lu) + n); }, stepPhoto = step;
 
+    // A wheel gesture keeps the mode it started in: spinning the log wheel, or moving along the track.
+    let wheelSpins = false, logAcc = 0;
     const onWheel = (e) => {
       if (e.ctrlKey) return; // pinch / ctrl+wheel: globe zoom or browser zoom, not paging
       const s = getTransition();
-      if (s.index !== LOGS_PANE && s.index !== GALLERY_PANE && scrollerOf(e.target)) return;
+      if (s.index !== GALLERY_PANE && scrollerOf(e.target)) return; // log text, about text: native scroll
       e.preventDefault();
       const unit = e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? innerHeight : 1; // lines/pages → px
       const d = (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) * unit;
-      move(d / PX_PER_UNIT);
+      if (!idleTimer) { wheelSpins = onLogWheel(e.clientX, e.clientY); logAcc = 0; }
       clearTimeout(idleTimer);
+      if (wheelSpins) {
+        // Whole steps, each eased by logSnapTo, so small trackpad jitter never shows.
+        logAcc += d;
+        while (Math.abs(logAcc) >= PX_PER_LOG) { stepLog(Math.sign(logAcc)); logAcc -= Math.sign(logAcc) * PX_PER_LOG; }
+        idleTimer = setTimeout(() => { idleTimer = 0; }, 140);
+        return;
+      }
+      move(d / PX_PER_UNIT);
       idleTimer = setTimeout(settle, 140);
     };
 
@@ -245,15 +287,17 @@ export default function App() {
     };
 
     // Touch drags the track like the wheel: vertical everywhere, horizontal too on the gallery.
+    // On logs, a drag on the card wheel or any sideways swipe spins the logs (phones hide the cards).
     // A gesture that starts inside a scrolling element belongs to the browser. The globe stops
     // propagation of touches that land on the sphere, so those never reach here.
-    let touchX = 0, touchY = 0, touching = false, touchScroll = false, axis = null;
+    let touchX = 0, touchY = 0, touching = false, touchScroll = false, touchWheel = false, touchSpins = false, axis = null;
     const onTouchStart = (e) => {
       touchX = e.touches[0].clientX;
       touchY = e.touches[0].clientY;
       touching = true;
       axis = null;
       touchScroll = !!scrollerOf(e.target);
+      touchWheel = onLogWheel(touchX, touchY);
     };
     const onTouchMove = (e) => {
       if (!touching || touchScroll) return;
@@ -261,17 +305,22 @@ export default function App() {
       const dx = touchX - x, dy = touchY - y;
       if (!axis) {
         if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-        axis = Math.abs(dx) > Math.abs(dy) && getTransition().index === GALLERY_PANE ? 'x' : 'y';
+        const s = getTransition();
+        const onLogs = s.index === LOGS_PANE && !s.offset;
+        axis = Math.abs(dx) > Math.abs(dy) && (s.index === GALLERY_PANE || onLogs) ? 'x' : 'y';
+        touchSpins = touchWheel || (onLogs && axis === 'x');
       }
       e.preventDefault();
       touchX = x;
       touchY = y;
-      move((axis === 'x' ? dx / innerWidth : dy / innerHeight) * 1.6);
+      const units = (axis === 'x' ? dx / innerWidth : dy / innerHeight) * 1.6;
+      if (touchSpins) spinLogs(units);
+      else move(units);
     };
     const onTouchEnd = () => {
       const was = touching && !touchScroll && axis;
       touching = false;
-      if (was) settle();
+      if (was) (touchSpins ? settleLogs : settle)();
     };
 
     addEventListener('wheel', onWheel, { passive: false });
@@ -283,6 +332,7 @@ export default function App() {
     return () => {
       unsub();
       stopSnap();
+      stopLogSnap();
       clearTimeout(idleTimer);
       removeEventListener('wheel', onWheel);
       removeEventListener('keydown', onKey);
@@ -303,7 +353,6 @@ export default function App() {
   return (
     <>
       <Percolation />
-      <div className="frame" aria-hidden="true" />
       {/* before the panes so they stack above it: the team photo stands in front of the globe */}
       <GlobeStage index={index} points={points} selectedId={pin?.id ?? null} onSelect={setPin} />
       {pane(0, <HomePane active={index === 0} />, ' scroll')} {/* scrolls on landscape phones only (style.css) */}
