@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { PANES, goTo, usePaneIndex } from '../lib/panes';
 import { NARROW } from '../lib/layout';
-import { toggle, usePlaying } from '../lib/audio';
+import { mountSpotify, toggleSpotify, useSpotifyPlaying } from '../lib/spotify';
 
 export default function IndexBar() {
   const index = usePaneIndex();
-  const playing = usePlaying();
+  const listPlaying = useSpotifyPlaying();
   const bar = useRef(null);
+  const spotify = useRef(null);
   const brand = useRef(null);
 
   // Wide: put the left frame line as far past the wordmark as the logo is from the viewport edge.
@@ -29,6 +30,9 @@ export default function IndexBar() {
     return () => { ro.disconnect(); removeEventListener('resize', place); root.style.removeProperty('--gx'); root.style.removeProperty('--nav-h'); };
   }, []);
 
+  // The club playlist under the sound toggle (wide screens only; see responsive.css).
+  useEffect(() => (innerWidth > NARROW ? mountSpotify(spotify.current) : undefined), []);
+
   return (
     <aside ref={bar} className="index">
       <a ref={brand} className="brand" href="#home" onClick={(e) => { e.preventDefault(); goTo(0); }}>
@@ -45,9 +49,10 @@ export default function IndexBar() {
           </li>
         ))}
       </ol>
-      <button type="button" className={`sound${playing ? ' is-on' : ''}`} onClick={toggle} aria-pressed={playing}>
-        <span aria-hidden="true">♪</span> <span className="sound-label">sound {playing ? 'on' : 'off'}</span>
+      <button type="button" className={`sound sound-list${listPlaying ? ' is-on' : ''}`} onClick={toggleSpotify} aria-pressed={listPlaying}>
+        <span aria-hidden="true">{listPlaying ? '❚❚' : '▶'}</span> <span className="sound-label">playlist</span>
       </button>
+      <div ref={spotify} className="spotify" />
     </aside>
   );
 }

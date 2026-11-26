@@ -26,6 +26,7 @@
   .index-list { display: flex; flex-wrap: wrap; gap: 0.2rem 0.8rem; margin-left: auto; }
   .index-list button { font-size: 1rem; gap: 0.35rem; }
   .sound { margin: 0; align-self: center; font-size: 0.9rem; }
+  .spotify, .sound { display: none; } /* no room for the embed in the top bar */
 
   /* home: logo (and event image), then the headline, then the next session */
   .pane-home { padding: calc(var(--nav-h) + 1.5vh) 1.2rem 1.2rem; }
