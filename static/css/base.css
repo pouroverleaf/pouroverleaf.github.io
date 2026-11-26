@@ -170,9 +170,12 @@ html[data-pane="about"] .percolation, html[data-pane="team"] .percolation, html[
 }
 .index-list li.is-active button { color: var(--ink); }
 .index-list li.is-active .label::after { width: 100%; }
-/* music toggle (lib/audio.js), under the pane list */
+/* playlist play/pause (lib/spotify.js), under the pane list */
 .sound { margin-top: 2.2rem; align-self: flex-start; font-family: var(--pk); font-size: 0.9rem; color: var(--mute); transition: color 0.3s; }
 .sound:hover, .sound.is-on { color: var(--red); }
+/* Spotify playlist embed (lib/spotify.js), under the toggle */
+.spotify { margin-top: 0.7rem; margin-left: -0.5rem; width: calc(var(--gx) - 1.5rem); }
+.spotify iframe { display: block; width: 100%; border: 0; border-radius: 12px; }
 .index-list button:hover { color: var(--ink); }
 
 

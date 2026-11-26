@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { getAnalyser } from '../lib/audio';
+import { isSpotifyPlaying, simulatedLevels } from '../lib/spotify';
 
 // Audio bars radiating from a circle (the ASCII logo's ring, the team globe), built from small
 // square blocks so they read like characters. `getDiameter()` returns the circle's size in px each
@@ -16,7 +16,7 @@ export default function RingBars({ getDiameter, active, className = 'ring-bars',
     const cv = canvas.current;
     if (!cv) return;
     const g = cv.getContext('2d');
-    let raf, data = null, level = new Float32Array(BARS / 2);
+    let raf, level = new Float32Array(BARS / 2), sim = new Float32Array(BARS / 2);
 
     const tick = () => {
       raf = requestAnimationFrame(tick);
@@ -28,19 +28,11 @@ export default function RingBars({ getDiameter, active, className = 'ring-bars',
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, size, size);
 
-      const an = getAnalyser();
       const half = BARS / 2;
-      if (an) {
-        if (!data || data.length !== an.frequencyBinCount) data = new Uint8Array(an.frequencyBinCount);
-        an.getByteFrequencyData(data);
-        // Bars 0..half-1 cover the lower ~45% of the spectrum (where the music is), on a log-ish scale.
-        const top = Math.floor(data.length * 0.45);
-        for (let i = 0; i < half; i++) {
-          const a = Math.floor(Math.pow(i / half, 1.6) * top), b = Math.max(a + 1, Math.floor(Math.pow((i + 1) / half, 1.6) * top));
-          let v = 0;
-          for (let k = a; k < b; k++) v = Math.max(v, data[k]);
-          level[i] = Math.max(v / 255, level[i] * 0.88); // quick rise, slow fall
-        }
+      if (isSpotifyPlaying()) {
+        // Spotify's audio can't be read (lib/spotify.js), so follow its play state with a stand-in beat.
+        simulatedLevels(sim);
+        for (let i = 0; i < half; i++) level[i] = Math.max(sim[i] * 0.85, level[i] * 0.88);
       } else {
         for (let i = 0; i < half; i++) level[i] *= 0.88;
       }

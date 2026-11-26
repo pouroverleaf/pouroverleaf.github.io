@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PANES, goTo, setPosition, subscribe, getTransition, position, mix, initFromHash, usePaneIndex } from './lib/panes';
 import { track } from './lib/track';
-import { autostart } from './lib/audio';
+import { autostart } from './lib/spotify';
 import { byTag } from './lib/logs';
 import { GALLERY, LAYERS } from './lib/content';
 import { modeFor } from './lib/layout';
