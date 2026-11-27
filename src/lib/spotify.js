@@ -57,6 +57,10 @@ export function mountSpotify(host, { width = '100%', height = 80 } = {}) {
   return () => { dead = true; controller?.destroy?.(); controller = null; playing = false; host.replaceChildren(); emit(); };
 }
 
+export function spotifyPositionMs() {
+  return positionMs + (playing ? performance.now() - positionAt : 0);
+}
+
 export function isSpotifyPlaying() { return playing; }
 // The embed hides its own play button at the nav column's width, so the nav has one of ours.
 export function toggleSpotify() {
@@ -105,7 +109,7 @@ export function useSpotifyPlaying() {
 // slower swells across the middle and flicker up top, phased from the track position so it doesn't
 // jump on pause/resume. Not the real audio; see the note at the top.
 export function simulatedLevels(out) {
-  const t = (positionMs + (performance.now() - positionAt)) / 1000;
+  const t = spotifyPositionMs() / 1000;
   const beat = Math.pow(1 - ((t * 2) % 1), 3); // 2 beats per second, sharp attack, decay
   const n = out.length;
   for (let i = 0; i < n; i++) {
