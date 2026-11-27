@@ -1,8 +1,16 @@
-/* the globe (GlobeStage.jsx): fixed, laid out at its map size and moved/scaled per frame */
-.globe-stage { position: fixed; left: 0; top: 0; z-index: 2; transform-origin: 50% 50%; will-change: transform; visibility: hidden; }
+/* One globe stays mounted across team and map so it keeps its rotation and zoom. */
+.globe-stage {
+  position: fixed;
+  z-index: 2;
+  left: var(--mid); top: 50%;
+  width: 76vh; aspect-ratio: 1;
+  transform: translate3d(-50%, calc(-50% + var(--pane-y) + var(--globe-y, 0vh)), 0) scale(var(--globe-scale, 1));
+}
+.globe-stage[data-layout="team"] { --globe-y: -5vh; --globe-scale: var(--team-scale, 1); }
 .globe { position: relative; width: 100%; height: 100%; }
 .globe canvas { display: block; width: 100%; height: 100%; }
-.globe-bars { position: absolute; inset: 0; pointer-events: none; opacity: 0; }
+.globe-bars { position: absolute; inset: 0; pointer-events: none; transition: opacity var(--item-time) ease; }
+.globe-stage[data-layout="team"] .globe-bars { opacity: 0; }
 .globe-bars .ring-bars { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 
 /* team and map panes let the globe underneath take the pointer; only their own boxes catch it */

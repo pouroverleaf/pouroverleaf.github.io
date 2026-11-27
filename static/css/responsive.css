@@ -42,6 +42,7 @@
   .session { font-size: 0.95rem; }
 
   /* team: photo across the bottom with the intro over its legs; map: layer key at the top */
+  .globe-stage[data-layout="team"] { --globe-y: 2vh; }
   .team-intro { bottom: 0.3rem; width: 99vw; padding: 0.9rem 1.2rem; } /* photo is 96vw; its bottom edge is 1vh up */
   .team-intro-line { font-size: 1.3rem; }
   .team-intro-line .fine { font-size: 0.95rem; }
@@ -63,7 +64,7 @@
 
   /* gallery */
   .stage { top: calc(var(--nav-h) + 2vh); height: calc(100vh - var(--nav-h) - 22vh); }
-  .photo img { max-width: 92vw; max-height: calc(100vh - var(--nav-h) - 22vh - 14px); }
+  .stage .photo { --photo-max-width: 92vw; --photo-max-height: calc(100vh - var(--nav-h) - 22vh - 14px); }
   .strip { max-width: 92vw; }
 }
 

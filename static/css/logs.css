@@ -1,16 +1,13 @@
 /* research: log wheel (text boxes) + reading panel */
 .log-card {
   position: absolute;
-  left: 0; top: 0;
-  opacity: 0;
   width: max(12rem, 25vh);
   min-height: max(3rem, 5.6vh);
   padding: max(0.35rem, 0.65vh) max(0.6rem, 1.2vh) max(0.4rem, 0.75vh);
   display: grid;
   gap: 0.15vh;
   text-align: left;
-  will-change: transform, opacity;
-  transition: box-shadow 0.3s;
+  transition: transform var(--item-time) var(--spring), opacity var(--item-time) ease, box-shadow 0.3s;
   pointer-events: auto; /* .cards is click-through; faded cards are made inert in Roundtable.jsx */
 }
 .log-card .meta { font-family: var(--px); font-size: max(0.7rem, 1.5vh); letter-spacing: 0; color: var(--mute); text-shadow: none; display: flex; gap: 0.8em; }
@@ -49,7 +46,6 @@
   flex-direction: column;
   padding: 1.4rem 1.8rem 1.2rem;
   font-size: 1rem;
-  animation: rise 0.5s var(--ease);
 }
 .log.empty { display: block; height: max-content; max-width: 34rem; }
 .log.empty img { display: block; width: 100%; max-height: 50vh; object-fit: contain; margin-bottom: 1rem; image-rendering: pixelated; }

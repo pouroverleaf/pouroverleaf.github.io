@@ -313,7 +313,7 @@ export default function Globe({ active, points, color, selectedId, onSelect, fit
 
     let down = null;
     // Touch: only a finger that lands on the sphere rotates the globe. Elsewhere on the canvas the
-    // gesture is left to the window handlers in App.jsx, which drag the pane. Runs in the capture
+    // gesture is left to the window handlers in App.jsx for pane navigation. Runs in the capture
     // phase so it precedes OrbitControls' own pointerdown listener.
     const onPointerDownCapture = (e) => {
       if (e.pointerType === 'touch') controls.enabled = !!pick(e, [sphere]);

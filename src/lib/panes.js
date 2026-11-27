@@ -1,138 +1,32 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 export const PANES = ['home', 'about', 'team', 'map', 'logs', 'gallery'];
-export const COMMIT = 0.42; // drag further than this (in panes) and the move commits
-const DURATION = 760;
-
-// Shared transition state. Per-frame consumers read it directly; React reads `index` via usePaneIndex.
-// index: current pane. offset: live drag in pane units (positive = toward the next pane).
-// While animating: start → to over t∈[0,1] with a thunk (overshoot) ease. k0 = fraction of the way
-// already covered by the drag at commit time.
-const state = { index: 0, from: 0, to: 0, start: 0, t: 1, k0: 0, offset: 0, animating: false };
 const listeners = new Set();
-let springRaf = 0;
-let animId = 0; // bumps on every goTo so a superseded animation loop stops touching state
+let index = 0;
 
-export const clamp01 = (t) => Math.max(0, Math.min(1, t));
-export const lerp = (a, b, t) => a + (b - a) * t;
-export const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-export const easeOut = (t) => 1 - Math.pow(1 - t, 3);
-// Fast start, ~3% overshoot, settle. The "thunk".
-export const thunk = (t) => {
-  const c1 = 0.8, c3 = c1 + 1;
-  return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-};
+export const getPaneIndex = () => index;
 
-const clampIndex = (i) => Math.max(0, Math.min(PANES.length - 1, i));
-
-export function getTransition() {
-  return state;
+export function paneClass(i, current) {
+  if (i === current) return 'is-active';
+  return i < current ? 'is-before' : 'is-after';
 }
 
-export function subscribe(fn) {
+function subscribe(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);
 }
 
-// Continuous pane position for the sliding HTML panes.
-export function position() {
-  if (state.animating) return state.start + (state.to - state.start) * thunk(state.t);
-  return state.index + state.offset;
+export function usePaneIndex() {
+  return useSyncExternalStore(subscribe, getPaneIndex);
 }
 
-// What per-frame layouts blend between. live=false means idle on pane a.
-export function mix() {
-  if (state.animating) {
-    const k = state.k0 + (1 - state.k0) * thunk(state.t);
-    return { a: state.from, b: state.to, k, t: state.k0 + (1 - state.k0) * state.t, live: true };
-  }
-  if (state.offset) {
-    const b = clampIndex(state.index + Math.sign(state.offset));
-    const k = Math.abs(state.offset);
-    return { a: state.index, b, k, t: k, live: b !== state.index };
-  }
-  return { a: state.index, b: state.index, k: 1, t: 1, live: false };
-}
-
-function stopSpring() {
-  cancelAnimationFrame(springRaf);
-  springRaf = 0;
-}
-
-export function goTo(next) {
-  next = clampIndex(next);
-  if (state.animating || next === state.index) return;
-  stopSpring();
-  const dir = Math.sign(next - state.index);
-  const o = state.offset * dir > 0 ? Math.min(Math.abs(state.offset), 0.95) : 0; // head start from a drag toward `next`
-  state.from = state.index;
-  state.to = next;
-  state.start = state.index + state.offset;
-  state.k0 = Math.abs(next - state.index) === 1 ? o : 0;
-  state.offset = 0;
-  state.index = next;
-  state.t = 0;
-  state.animating = true;
-  announce(next);
-  const dur = DURATION * Math.sqrt(1 - state.k0);
-  const begin = performance.now();
-  const id = ++animId;
-  const step = (now) => {
-    if (id !== animId) return;
-    state.t = clamp01((now - begin) / dur);
-    if (state.t >= 1) state.animating = false;
-    else requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
-  listeners.forEach((fn) => fn(state.index));
-}
-
-function announce(i) {
-  history.replaceState(null, '', `#${PANES[i]}`);
-  document.title = i === 0 ? 'pouroverleaf' : `${PANES[i]} · pouroverleaf`;
-}
-
-// Continuous scroll: put the panes at fractional position p (2.3 = 30% of the way from pane 2 to 3)
-// with no animation. The pane nearest p becomes the index. Interrupts a goTo animation.
-export function setPosition(p) {
-  stopSpring();
-  animId++;
-  p = Math.max(0, Math.min(PANES.length - 1, p));
-  const i = Math.round(p);
-  state.animating = false;
-  state.t = 1;
-  state.offset = p - i;
-  if (i === state.index) return;
-  state.index = state.from = state.to = state.start = i;
-  announce(i);
-  listeners.forEach((fn) => fn(i));
-}
-
-// Live drag. offset is in pane units; past the ends it is rubber-banded.
-export function setDrag(offset) {
-  if (state.animating) return;
-  stopSpring();
-  const atStart = state.index === 0 && offset < 0;
-  const atEnd = state.index === PANES.length - 1 && offset > 0;
-  state.offset = atStart || atEnd ? Math.sign(offset) * Math.min(0.12, Math.abs(offset) * 0.25) : offset;
-}
-
-// Gesture ended: commit or spring back.
-export function release() {
-  if (state.animating || !state.offset) return;
-  const dir = Math.sign(state.offset);
-  const target = clampIndex(state.index + dir);
-  if (Math.abs(state.offset) >= COMMIT && target !== state.index) return goTo(target);
-  const o = state.offset;
-  const begin = performance.now();
-  const step = (now) => {
-    const t = clamp01((now - begin) / 420);
-    // critically damped: snaps back without crossing the rest position
-    state.offset = t >= 1 ? 0 : o * (1 + 7 * t) * Math.exp(-7 * t);
-    if (t < 1) springRaf = requestAnimationFrame(step);
-    else springRaf = 0;
-  };
-  springRaf = requestAnimationFrame(step);
+export function goTo(i) {
+  const next = Math.max(0, Math.min(PANES.length - 1, i));
+  if (next === index) return;
+  index = next;
+  history.replaceState(null, '', `#${PANES[index]}`);
+  document.title = index === 0 ? 'pouroverleaf' : `${PANES[index]} · pouroverleaf`;
+  listeners.forEach((fn) => fn());
 }
 
 const paneFromHash = () => PANES.indexOf(location.hash.replace('#', '').replace('research', 'logs')); // old links
@@ -140,25 +34,11 @@ const paneFromHash = () => PANES.indexOf(location.hash.replace('#', '').replace(
 export function initFromHash() {
   const i = paneFromHash();
   if (i > 0) {
-    state.index = state.from = state.to = state.start = i;
+    index = i;
     document.title = `${PANES[i]} · pouroverleaf`;
   }
-  // Editing the hash in the address bar moves the pane. goTo uses replaceState, which fires no hashchange.
   addEventListener('hashchange', () => {
-    const j = paneFromHash();
-    if (j >= 0 && j !== state.index) goTo(j);
+    const next = paneFromHash();
+    if (next >= 0) goTo(next);
   });
-  // Debug: ?freeze=from,to,t holds a transition mid-way. Ignored unless all three are in range.
-  const f = new URLSearchParams(location.search).get('freeze');
-  if (f) {
-    const [from, to, t] = f.split(',').map(Number);
-    const ok = (n) => Number.isInteger(n) && n >= 0 && n < PANES.length;
-    if (ok(from) && ok(to) && t >= 0 && t <= 1) Object.assign(state, { from, to, start: from, t, k0: 0, index: to, animating: true });
-  }
-}
-
-export function usePaneIndex() {
-  const [index, setIndex] = useState(state.index);
-  useEffect(() => subscribe(setIndex), []);
-  return index;
 }

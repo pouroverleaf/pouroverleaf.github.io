@@ -1,19 +1,45 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { GALLERY } from '../lib/content';
-import { track } from '../lib/track';
 
-// One large photo with a thumbnail bar under it. Wheel/arrow input and the scroll position live in
-// App.jsx. Click a thumbnail to jump; click the big photo to open it full-size.
+// The selected photo and its neighbours share the same circular order as the gesture controls.
 const N = GALLERY.length;
-const mod = (n, m) => ((n % m) + m) % m;
+const middle = Math.floor(N / 2);
+
+function preparePreview(e) {
+  const image = e.currentTarget;
+  image.dataset.loaded = 'true';
+  // Decode while the neighbouring image is mounted so selecting it only changes visibility.
+  if (image.hidden) image.decode().catch(() => {});
+}
+
+function Photo({ photo, previews, fullSize = false, onClick }) {
+  const showOriginal = fullSize && photo.src !== photo.preview;
+  const style = {
+    '--photo-ratio': photo.thumb.w / photo.thumb.h,
+    backgroundImage: `url("${photo.thumb.src}")`,
+  };
+  return (
+    <figure className="photo" onClick={onClick}>
+      <div className="photo-picture" style={style}>
+        {previews.map((p) => (
+          <img key={p.id} src={p.preview} alt={p.alt} hidden={p !== photo} className={showOriginal ? 'underlay' : undefined}
+            decoding="async" draggable="false" onLoad={preparePreview} />
+        ))}
+        {showOriginal && (
+          <img key={photo.src} src={photo.src} alt="" decoding="async" draggable="false" onLoad={preparePreview} />
+        )}
+      </div>
+    </figure>
+  );
+}
 
 export default function GalleryPane({ active, index, onSelect }) {
   const [zoomed, setZoomed] = useState(false);
   const stripRef = useRef(null);
   const rowRef = useRef(null);
-  const thumbs = useRef([]);
-  const cur = mod(index, N);
+  const selectedThumb = useRef(null);
+  const previousThumb = useRef(null);
 
   useEffect(() => {
     if (!active) setZoomed(false);
@@ -26,27 +52,37 @@ export default function GalleryPane({ active, index, onSelect }) {
     return () => removeEventListener('keydown', onKey);
   }, [zoomed]);
 
-  // Keep the scroll position centred in the thumbnail bar once it is wider than the viewport. The
-  // position is fractional while scrolling, so the bar glides between thumbnails every frame.
-  useEffect(() => {
-    if (!active) return;
-    let raf;
-    const tick = () => {
-      raf = requestAnimationFrame(tick);
-      const strip = stripRef.current, row = rowRef.current;
-      if (!strip || !row) return;
-      if (row.scrollWidth <= strip.clientWidth) { row.style.transform = ''; return; }
-      const p = Math.max(0, Math.min(N - 1, track.photoPos));
-      const i = Math.floor(p), f = p - i;
-      const mid = (el) => (el ? el.offsetLeft + el.offsetWidth / 2 : 0);
-      const a = thumbs.current[i], b = thumbs.current[Math.min(N - 1, i + 1)];
-      const c = mid(a) + (mid(b) - mid(a)) * f;
-      const want = strip.clientWidth / 2 - c;
-      row.style.transform = `translateX(${Math.min(0, Math.max(strip.clientWidth - row.scrollWidth, want))}px)`;
+  useLayoutEffect(() => {
+    const previous = previousThumb.current;
+    previousThumb.current = active ? selectedThumb.current : null;
+    if (!active || !N) return;
+    const strip = stripRef.current;
+    const row = rowRef.current;
+    const thumb = selectedThumb.current;
+    const midpoint = (el) => el.offsetLeft + el.offsetWidth / 2;
+    const center = () => {
+      strip.scrollLeft = midpoint(thumb) - strip.clientWidth / 2;
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [active]);
+    if (previous && previous !== thumb) {
+      // The circular row is already in its new order. Start it where the old selection was
+      // displayed, including any movement still in progress from a previous keypress.
+      const css = getComputedStyle(row);
+      const carried = css.transform === 'none' ? 0 : new DOMMatrixReadOnly(css.transform).m41;
+      const distance = midpoint(thumb) - midpoint(previous);
+      const duration = parseFloat(css.getPropertyValue('--strip-time')); // ms
+      const timing = { duration, easing: css.getPropertyValue('--spring').trim() };
+      row.getAnimations().forEach((animation) => animation.cancel());
+      if (duration) {
+        row.animate([{ transform: `translateX(${distance + carried}px)` }, { transform: 'translateX(0)' }], timing);
+      }
+    }
+    center();
+    // Thumbnail widths follow the viewport height. Keep the selection centred on resize.
+    const observer = new ResizeObserver(center);
+    observer.observe(strip);
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, [active, index]);
 
   if (!N) {
     return (
@@ -56,39 +92,43 @@ export default function GalleryPane({ active, index, onSelect }) {
     );
   }
 
-  const g = GALLERY[cur];
+  const g = GALLERY[index];
+  const previews = active ? GALLERY.filter((_, i) => {
+    const distance = Math.abs(i - index);
+    return Math.min(distance, N - distance) <= 2;
+  }) : [g];
 
   return (
     <div className="gallery">
       <div className="stage">
-        <figure className="photo" key={g.id} onClick={() => setZoomed(true)}>
-          <img src={g.src} alt={g.alt} draggable="false" />
-        </figure>
+        <Photo photo={g} previews={previews} onClick={() => setZoomed(true)} />
       </div>
       <div className="strip" ref={stripRef}>
-        <div className="strip-row" ref={rowRef} role="list">
-          {GALLERY.map((p, i) => (
-            <button
-              key={p.id}
-              type="button"
-              ref={(el) => (thumbs.current[i] = el)}
-              className={`thumb${i === cur ? ' is-selected' : ''}`}
-              role="listitem"
-              aria-current={i === cur || undefined}
-              onClick={() => onSelect(i)}
-            >
-              <img src={p.src} alt="" loading="lazy" draggable="false" />
-            </button>
-          ))}
+        <div className="strip-row" ref={rowRef} role="group" aria-label="Gallery photos">
+          {GALLERY.map((_, slot) => {
+            const i = (index + slot - middle + N) % N;
+            const photo = GALLERY[i];
+            return (
+              <button
+                key={photo.id}
+                type="button"
+                ref={i === index ? selectedThumb : null}
+                className={`thumb${i === index ? ' is-selected' : ''}`}
+                aria-label={`Photo ${i + 1}, ${photo.alt}`}
+                aria-current={i === index || undefined}
+                onClick={() => onSelect(i)}
+              >
+                <img src={photo.thumb.src} width={photo.thumb.w} height={photo.thumb.h} alt="" loading="lazy" decoding="async" draggable="false" />
+              </button>
+            );
+          })}
         </div>
       </div>
-      <p className="fine strip-pos">{cur + 1} / {N}</p>
+      <p className="fine strip-pos">{index + 1} / {N}</p>
       {zoomed && createPortal(
         <div className="lightbox" onClick={() => setZoomed(false)} role="dialog" aria-label="photo">
-          <figure className="photo">
-            <img src={g.src} alt={g.alt} draggable="false" />
-          </figure>
-          <p className="fine">{cur + 1} / {N}</p>
+          <Photo photo={g} previews={[g]} fullSize />
+          <p className="fine">{index + 1} / {N}</p>
         </div>,
         document.body,
       )}

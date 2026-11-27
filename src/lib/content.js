@@ -88,7 +88,14 @@ export const LAYERS = sorted(placeFiles)
 
 // gallery/*.{jpg,jpeg,png,webp,gif}: photos for the carousel, ordered by filename. alt = filename minus the number prefix.
 const galleryFiles = import.meta.glob('../content/gallery/*.{jpg,jpeg,png,webp,gif}', { query: '?url', import: 'default', eager: true });
+const thumbnails = import.meta.glob('../content/gallery/*.{jpg,jpeg,png,webp,gif}', { query: '?h=176&format=webp&as=img', import: 'default', eager: true });
+const previews = import.meta.glob('../content/gallery/*.{jpg,jpeg}', { query: '?w=1600&h=1200&fit=inside&format=webp', import: 'default', eager: true });
 export const GALLERY = sorted(galleryFiles).map(([path, src], i) => {
   const id = path.split('/').pop().replace(/\.[^.]+$/, '');
-  return { id, src, alt: id.replace(/^\d+[-_]?/, '').replace(/[-_]+/g, ' ') || `photo ${i + 1}` };
+  return {
+    id, src,
+    thumb: thumbnails[path],
+    preview: previews[path] ?? src,
+    alt: id.replace(/^\d+[-_]?/, '').replace(/[-_]+/g, ' ') || `photo ${i + 1}`,
+  };
 });

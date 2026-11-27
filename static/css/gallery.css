@@ -9,16 +9,32 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
   place-items: center;
 }
 .photo {
+  --photo-max-width: min(74vw, calc(100vw - 24rem));
+  --photo-max-height: calc(62vh - 14px);
   margin: 0;
   padding: 4px;
   background: var(--paper);
   border: 3px solid var(--ink);
   border-radius: 6px;
   cursor: zoom-in;
-  animation: fade 0.25s var(--ease);
 }
 @keyframes fade { from { opacity: 0; } }
-.photo img { display: block; width: auto; height: auto; max-height: calc(62vh - 14px); max-width: min(74vw, calc(100vw - 24rem)); border-radius: 2px; user-select: none; }
+.photo-picture {
+  position: relative;
+  background-size: 100% 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.photo-picture img { position: relative; max-width: var(--photo-max-width); max-height: var(--photo-max-height); user-select: none; }
+/* Reserve the photo's shape and show its thumbnail while a cold preview or original loads. */
+.photo-picture img:not([data-loaded]) {
+  width: min(var(--photo-max-width), calc(var(--photo-max-height) * var(--photo-ratio)));
+  aspect-ratio: var(--photo-ratio);
+  color: transparent;
+}
+.photo-picture img.underlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.photo-picture img[hidden] { display: none; }
 .strip {
   position: absolute;
   left: var(--mid); bottom: calc(var(--gy) + 0.4rem);
@@ -26,7 +42,10 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
   max-width: calc(100vw - var(--gx) - var(--gr) - 4rem);
   overflow: hidden;
 }
-.strip-row { display: flex; gap: 0.5rem; width: max-content; } /* moved per frame by GalleryPane */
+.strip-row { --strip-time: 150ms; position: relative; display: flex; gap: 0.5rem; width: max-content; }
+@media (prefers-reduced-motion: reduce) {
+  .strip-row { --strip-time: 0ms; }
+}
 .thumb {
   flex: none;
   padding: 2px;
@@ -53,8 +72,7 @@ html[data-pane="gallery"] .percolation { opacity: 0.5; }
   cursor: zoom-out;
   animation: rise 0.25s var(--ease);
 }
-.lightbox .photo { cursor: zoom-out; }
-.lightbox .photo img { max-height: 84vh; max-width: 90vw; }
+.lightbox .photo { --photo-max-height: 84vh; --photo-max-width: 90vw; cursor: zoom-out; }
 
 /* vim command line (":3", ":gal") */
 .cmdline {
