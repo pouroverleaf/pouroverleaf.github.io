@@ -1,21 +1,22 @@
 ---
-label: coffee farms
-color: #105723
+label: coffee origins
+color: #710318
 ---
 
-One row per point. lat/lon in decimal degrees (north and east positive).
+Each row represents the named area. Use a region row when the profile matches it, then fall back to the country row. Sources identify the coordinate reference.
 
-| name | place | lat | lon | process | variety | altitude | notes |
-|---|---|---|---|---|---|---|---|
-| Finca El Injerto | Huehuetenango, Guatemala | 15.32 | -91.47 | Washed | Bourbon | 1500–2000 m | Chocolate, red apple, caramel |
-| Hacienda La Esmeralda | Boquete, Panama | 8.78 | -82.44 | Natural | Geisha | 1600–1800 m | Jasmine, bergamot, papaya |
-| Fazenda Daterra | Cerrado Mineiro, Brazil | -18.98 | -46.98 | Natural | Yellow Bourbon | 1150 m | Hazelnut, milk chocolate |
-| Gedeb washing station | Yirgacheffe, Ethiopia | 6.09 | 38.29 | Washed | Heirloom | 1900–2100 m | Bergamot, peach, black tea |
-| Nyeri cooperative | Nyeri, Kenya | -0.42 | 36.95 | Washed | SL28 / SL34 | 1700–1900 m | Blackcurrant, tomato, brown sugar |
-| Finca Tamana | Huila, Colombia | 2.32 | -75.93 | Washed | Caturra | 1750 m | Panela, plum, orange |
-| Ninety Plus estate | Volcán, Panama | 8.77 | -82.63 | Anaerobic | Geisha | 1600 m | Strawberry, rose, cacao |
-| Long Miles | Kayanza, Burundi | -2.92 | 29.62 | Washed | Red Bourbon | 1800 m | Cherry, honey, lime |
-| Kerinci highlands | Sumatra, Indonesia | -1.7 | 101.27 | Wet-hulled | Typica / Ateng | 1400 m | Cedar, dark chocolate, herbs |
-| Dak Lak plateau | Buôn Ma Thuột, Vietnam | 12.67 | 108.04 | Natural | Robusta | 600 m | Bitter chocolate, earth |
-| Finca Santa Isabel | Cobán, Guatemala | 15.47 | -90.37 | Washed | Caturra / Catuai | 1300–1500 m | Toffee, green apple |
-| Lake Toba | Sumatra, Indonesia | 2.61 | 98.83 | Wet-hulled | Lintong | 1200 m | Tobacco, cocoa, spice |
+| name | country | region | place | lat | lon | reference | kind | coffee_id |
+|---|---|---|---|---|---|---|---|---|
+| Cauca | Colombia | Cauca | Department-level location, Colombia | 2.5 | -76.83333 | https://digital.library.unt.edu/explore/locations/p14801/ |  |  |
+| Ngororero | Rwanda | Ngororero | District-level location, Rwanda | -1.878219 | 29.56904 | https://latitude.to/map/rw/rwanda/regions/western-province/ngororero-district |  |  |
+| Nyeri | Kenya | Nyeri | County-level location, Kenya | -0.42 | 36.95 | https://digital.library.unt.edu/explore/locations/p18813/ |  |  |
+| Kiambururu | Kenya | Kiambururu, Lari | Locality-level location, Kenya | -1.05 | 36.8167 | https://www.fallingrain.com/world/KE/22/Kiambururu.html |  |  |
+| Fyn | Denmark | Fyn | Island-level location, Denmark | 55.3333333 | 10.5 | https://www.geonames.org/advanced-search.html?country=DK&featureClass=T&q=&startRow=0 |  |  |
+| Colombia | Colombia |  | Country-level location | 4.570868 | -74.297333 | https://developers.google.com/public-data/docs/canonical/countries_csv |  |  |
+| Denmark | Denmark |  | Country-level location | 56.26392 | 9.501785 | https://developers.google.com/public-data/docs/canonical/countries_csv |  |  |
+| Ethiopia | Ethiopia |  | Country-level location | 9.145 | 40.489673 | https://developers.google.com/public-data/docs/canonical/countries_csv |  |  |
+| Kenya | Kenya |  | Country-level location | -0.023559 | 37.906193 | https://developers.google.com/public-data/docs/canonical/countries_csv |  |  |
+| Rwanda | Rwanda |  | Country-level location | -1.940278 | 29.873888 | https://developers.google.com/public-data/docs/canonical/countries_csv |  |  |
+| Panama | Panama |  | Country-level location | 8.537981 | -80.782127 | https://developers.google.com/public-data/docs/canonical/countries_csv |  |  |
+| Gesha Village Coffee Estate | Ethiopia |  | Bench Maji, Ethiopia · estate reference near the Bangi block | 6.538 | 35.487 | https://www.qualitylife.coffee/en/products/e67-ethiopia-gesha-village-bangi-gori-natural-22-016 | estate | gesha-village-151 |
+| Hacienda La Esmeralda | Panama |  | Palmira, Boquete district, Panama · mapped farm site | 8.73525 | -82.45967 | https://mapcarta.com/es/N6301769893 | estate |  |

@@ -1,3 +1,4 @@
+import { coffeeHeading } from '../lib/coffee-format';
 import { LAYERS } from '../lib/content';
 
 function PointCard({ p, onClose }) {
@@ -11,6 +12,7 @@ function PointCard({ p, onClose }) {
         {p.altitude && <> <span className="fine">{p.altitude}.</span></>}
         {p.note && !p.notes && <> {p.note}</>}
       </p>
+      {p.coffees?.length > 0 && <ul>{p.coffees.map(c => <li key={c.id}>{coffeeHeading(c)}{c.region && ` · ${c.region}`}</li>)}</ul>}
     </div>
   );
 }

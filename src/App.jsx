@@ -250,7 +250,7 @@ export default function App() {
       {pane(TEAM_PANE, <TeamPane active={index === TEAM_PANE} />)}
       {pane(MAP_PANE, <MapPane enabled={layersOn} onToggle={toggleLayer} selected={pin} onClose={() => setPin(null)} />)}
       {pane(LOGS_PANE, <>
-        <ResearchPane log={logs[logNumber]} n={logNumber} total={N} tag={tag} onTag={pickTag} />
+        <ResearchPane key={logs[logNumber]?.id} log={logs[logNumber]} n={logNumber} total={N} tag={tag} />
         <Roundtable logs={logs} logIndex={logIndex} onSelectLog={setLogIndex} />
       </>)}
       {pane(GALLERY_PANE, <GalleryPane active={index === GALLERY_PANE} index={photoIndex} onSelect={setPhotoIndex} />)}

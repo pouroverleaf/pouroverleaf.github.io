@@ -1,34 +1,16 @@
 ---
 title: Kenya
 date: 2026-11-25
-tags: coffee
+tags: tasting, origin
 ---
-## Friedhats · Kamuchege, Lari
+I love a Kenyan coffee that tastes a bit like tomato. This week we had three washed Kenyans side by side.
 
-- **Notes:** blackberry, tangerine, lemongrass
-- **Producer:** Komothai Farmers' Cooperative Society, Kamuchege Factory
-- **Region:** Kiambururu, Lari
-- **Varietal:** SL28, SL34, Batian, Ruiru 11
-- **Process:** washed
-- **MASL:** 1960
-- **Link:** [Friedhats](https://friedhats.com/products/kenya-kamuchege-washed?Roast=Filter&Size=250gr)
+## Coffee lineup
 
-## POMA · Muthuaini, Nyeri
+### [Kamuchege Washed](../coffees/friedhats-kamuchege.md)
 
-- **Notes:** bright berries, stewed red fruits
-- **Farm:** Muthuaini
-- **Region:** Nyeri
-- **Varietal:** SL28, SL34, Batian, Ruiru 11
-- **Process:** washed, light roast
-- **MASL:** 1700
-- **Link:** [Sigma Coffee](https://sigmacoffee.co.uk/products/poma-coffee-muthuaini-washed-sl28-sl34-ruiru-11-batian-kenya?variant=59215667659126)
+### [Muthuaini Washed](../coffees/poma-muthuaini.md)
 
-## DAK · Cassis, Kirinyaga
+### [Cassis](../coffees/dak-cassis.md)
 
-- **Notes:** red currant, rhubarb, pomegranate
-- **Producer:** Rungeto Farmers Cooperative Society
-- **Region:** Kirinyaga County
-- **Varietal:** SL28, SL34, Batian, Ruiru 11
-- **Process:** washed, light roast
-- **Rest:** 2 weeks from roast
-- **Link:** [Sigma Coffee](https://sigmacoffee.co.uk/products/dak-cassis-kenya-250g)
+Rested two weeks from roast.

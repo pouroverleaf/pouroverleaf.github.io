@@ -75,6 +75,15 @@ export const TEAM = sorted(teamFiles).map(([path, text], i) => {
   return { id: slug(path), name: meta.name, title: meta.title, color: meta.color, img: meta.img, spot: Number(meta.spot) || i + 1, bio: body.trim() };
 });
 
+const coffeeFiles = import.meta.glob('../content/coffees/*.md', { query: '?raw', import: 'default', eager: true });
+export const COFFEE_PROFILES = sorted(coffeeFiles).map(([path, raw]) => {
+  const { meta } = parseFront(raw);
+  if (meta.id !== slug(path)) throw new Error('Coffee ID must match filename: ' + path);
+  return meta;
+});
+export const COFFEES = COFFEE_PROFILES.filter(coffee => coffee.inventory !== 'false')
+  .sort((a, b) => Number(a.order) - Number(b.order));
+
 // places/*.md: one globe layer per file with a table of points.
 const ORDER = ['farms', 'labs', 'cafes'];
 const placeFiles = import.meta.glob('../content/places/*.md', { query: '?raw', import: 'default', eager: true });
@@ -82,7 +91,15 @@ export const LAYERS = sorted(placeFiles)
   .map(([path, text]) => {
     const key = slug(path);
     const { meta, body } = parseFront(text);
-    return { key, label: meta.label || key, color: meta.color, points: parseTable(body).map((p, i) => ({ ...p, id: `${key}-${i + 1}` })) };
+    const places = parseTable(body);
+    const originFor = (coffee) => places.find(p => p.coffee_id === coffee.id)
+      || places.find(p => !p.kind && p.country === coffee.country && p.region && p.region === coffee.region)
+      || places.find(p => !p.kind && p.country === coffee.country && !p.region);
+    return { key, label: meta.label || key, color: meta.color, points: places.flatMap((p, i) => {
+        if (key !== 'farms') return [{ ...p, id: key + '-' + (i + 1) }];
+        const coffees = COFFEES.filter(c => originFor(c) === p);
+        return coffees.length || p.kind === 'estate' ? [{ ...p, id: key + '-' + p.name, coffees }] : [];
+    }) };
   })
   .sort((a, b) => ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
 

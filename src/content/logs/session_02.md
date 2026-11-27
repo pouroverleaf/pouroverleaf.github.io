@@ -2,7 +2,7 @@
 title: Iced Coffee
 date: 2026-11-18
 author: committee
-tags: coffee, fun
+tags: creative, social
 ---
 ## Menu
 
