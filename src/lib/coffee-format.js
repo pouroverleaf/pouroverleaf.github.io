@@ -25,14 +25,17 @@ export function renderSession(body, coffees, markdown) {
     if (!/^## Coffee lineup[ \t]*\r?$/m.test(section)) return markdown(section);
     const part = section.replace(/^## Coffee lineup[ \t]*\r?\n?/, '');
     let number = 0;
-    return markdown(part.replace(/^### (.+)$/gm, (_, title) => {
+    return part.split(/^(?=### )/m).map(block => {
+      const line = block.match(/^### ([^\r\n]+)\r?\n?/);
+      if (!line) return markdown(block);
+      const title = line[1];
       const match = title.match(/^\[([^\]]+)\]\(\.\.\/coffees\/([\w-]+)\.md\)$/);
       const coffee = match && coffees.find((item) => item.id === match[2]);
       if (match && !coffee) throw new Error('Missing coffee profile: ' + match[2]);
       const heading = coffee ? coffeeHeading(coffee) : title;
       const prefix = String(++number).padStart(2, '0');
-      return '<h3 class="coffee-heading">' + prefix + ' / ' + escape(heading) + '</h3>\n\n' +
-        (coffee ? coffeeDetails(coffee) + '\n\n' : '');
-    }));
+      return '<section class="coffee-entry"><h3 class="coffee-heading">' + prefix + ' / ' + escape(heading) + '</h3>\n\n' +
+        (coffee ? coffeeDetails(coffee) : '') + markdown(block.slice(line[0].length)) + '</section>';
+    }).join('');
   }).join('');
 }

@@ -23,7 +23,7 @@ export default function ResearchPane({ log, n, total, tag }) {
               </p>}
             </header>
             {inventory ? <div className="log-body scroll">{COFFEES.map((coffee, i) =>
-              <section key={coffee.id}>
+              <section className="coffee-entry" key={coffee.id}>
                 <h3 className="coffee-heading">{String(i + 1).padStart(2, '0')} / {coffeeHeading(coffee)}</h3>
                 <div dangerouslySetInnerHTML={{ __html: coffeeDetails(coffee, true) }} />
               </section>)}</div> :

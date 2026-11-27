@@ -1,0 +1,7 @@
+.archive-toolbar { display:flex; align-items:center; justify-content:space-between; gap:1rem; }
+.archive-toolbar button { border:2px solid #241a1c; border-radius:.35rem; background:var(--paper); color:#710318; padding:.25em .65em; font:inherit; cursor:pointer; }
+.archive-toolbar button:focus-visible { outline:3px solid var(--yellow); outline-offset:2px; }
+.log-body .coffee-entry { padding:0; }
+.log-body > * + .coffee-entry { border-top:1px solid #241a1c; margin-top:1rem; padding-top:1rem; }
+.log-body .coffee-entry .coffee-heading { margin:0 0 .45rem; padding:0; border:0; color:#710318; }
+.log-body .coffee-entry > :last-child, .coffee-entry > div > :last-child { margin-bottom:0; }
