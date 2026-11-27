@@ -9,7 +9,7 @@ const TEX_W = 2048;
 const TEX_H = 1024;
 const DOT_STEP = 5; // texels between land dots
 const DOT_SIZE = 0.027; // world units; attenuates with distance so dots grow as you zoom
-const MIN_DIST = 2.2;
+const MIN_DIST = 3.25; // At 38 degrees FOV the whole globe fills 94% of the square canvas.
 const MAX_DIST = 7.2;
 const DEG = Math.PI / 180;
 
@@ -319,7 +319,32 @@ export default function Globe({ active, points, color, selectedId, onSelect, fit
       if (e.pointerType === 'touch') controls.enabled = !!pick(e, [sphere]);
       else controls.enabled = true;
     };
+    // Keep pinch and wheel on the same bounded camera target.
+    let pinch = null;
+    const span = ([a, b]) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const onTouchMove = (e) => {
+      if (!pinch || e.touches.length !== 2) return;
+      const distance = span(e.touches);
+      if (!distance) return;
+      e.preventDefault();
+      e.stopPropagation();
+      zoomTarget = THREE.MathUtils.clamp(pinch.radius * pinch.span / distance, MIN_DIST, MAX_DIST);
+    };
+    const onTouchEnd = () => {
+      if (pinch) resumeLater();
+      pinch = null;
+    };
     const onTouchStart = (e) => {
+      if (e.touches.length === 2 && e.touches[0] && controls.enabled) {
+        const fingers = Array.from(e.touches);
+        const distance = span(fingers);
+        if (distance && fingers.some(touch => pick(touch, [sphere]))) {
+          pinch = { span: distance, radius: zoomTarget };
+          down = null;
+          tween = null;
+          pause();
+        }
+      } else pinch = null;
       const t = e.touches[0];
       if (e.touches.length === 1 && t && pick(t, [sphere])) e.stopPropagation();
     };
@@ -350,10 +375,12 @@ export default function Globe({ active, points, color, selectedId, onSelect, fit
       down = null;
       resumeLater();
     };
-    // Plain wheel scrolls the page (App.jsx) wherever the mouse is; zoom is trackpad pinch or
-    // ctrl+wheel (browsers report a pinch as a wheel event with ctrlKey).
+    let lastGlobeWheel = -Infinity;
     const onWheel = (e) => {
-      if (!e.ctrlKey || !pick(e, [sphere])) return;
+      const mapWheel = canvas.closest('[data-layout="map"]') && Math.abs(e.deltaY) > Math.abs(e.deltaX);
+      const continuing = e.timeStamp - lastGlobeWheel < 180;
+      if (!continuing && ((!e.ctrlKey && !mapWheel) || !pick(e, [sphere]))) return;
+      lastGlobeWheel = e.timeStamp;
       e.preventDefault();
       e.stopPropagation();
       const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaMode === 2 ? e.deltaY * 400 : e.deltaY;
@@ -362,6 +389,9 @@ export default function Globe({ active, points, color, selectedId, onSelect, fit
       resumeLater();
     };
     canvas.addEventListener('pointerdown', onPointerDownCapture, true);
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchend', onTouchEnd);
+    canvas.addEventListener('touchcancel', onTouchEnd);
     canvas.addEventListener('touchstart', onTouchStart, { passive: true });
     canvas.addEventListener('pointerdown', onPointerDown);
     canvas.addEventListener('pointerup', onPointerUp);
@@ -504,6 +534,9 @@ export default function Globe({ active, points, color, selectedId, onSelect, fit
       clearTimeout(resumeTimer);
       ro.disconnect();
       canvas.removeEventListener('pointerdown', onPointerDownCapture, true);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchend', onTouchEnd);
+      canvas.removeEventListener('touchcancel', onTouchEnd);
       canvas.removeEventListener('touchstart', onTouchStart);
       canvas.removeEventListener('pointerdown', onPointerDown);
       canvas.removeEventListener('pointerup', onPointerUp);

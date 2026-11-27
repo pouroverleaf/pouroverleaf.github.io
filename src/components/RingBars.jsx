@@ -8,7 +8,7 @@ const BARS = 72; // around the full circle, mirrored left/right
 const RED = '#710318';
 const REACH = 0.26; // default longest bar, as a fraction of the circle's diameter
 
-export default function RingBars({ getDiameter, active, className = 'ring-bars', reach = REACH }) {
+export default function RingBars({ getDiameter, active, className = 'ring-bars', reach = REACH, idleBlocks = 0 }) {
   const canvas = useRef(null);
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function RingBars({ getDiameter, active, className = 'ring-bars',
       for (let j = 0; j < BARS; j++) {
         // mirrored: bass at the top, highs meeting at the bottom
         const i = j < half ? j : BARS - 1 - j;
-        const n = Math.floor((level[i] * level[i] * d * reach) / step);
+        const n = Math.max(idleBlocks, Math.floor((level[i] * level[i] * d * reach) / step));
         if (!n) continue;
         const ang = -Math.PI / 2 + ((j + 0.5) / BARS) * Math.PI * 2;
         g.save();
@@ -56,7 +56,7 @@ export default function RingBars({ getDiameter, active, className = 'ring-bars',
     };
     raf = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(raf); g.clearRect(0, 0, cv.width, cv.height); };
-  }, [active, reach]); // eslint-disable-line react-hooks/exhaustive-deps -- getDiameter reads refs
+  }, [active, reach, idleBlocks]); // eslint-disable-line react-hooks/exhaustive-deps -- getDiameter reads refs
 
   return <canvas ref={canvas} className={className} aria-hidden="true" />;
 }
