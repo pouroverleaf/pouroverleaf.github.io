@@ -1,7 +1,8 @@
 import { marked } from 'marked';
-import { parseFront } from './content';
+import { renderSession } from './coffee-format';
+import { COFFEE_PROFILES, parseFront } from './content';
 
-export const TAGS = ['coffee', 'research', 'meta research', 'fun'];
+export const TAGS = ['tasting', 'origin', 'experiment', 'creative', 'social'];
 
 const files = import.meta.glob('../content/logs/*.md', { query: '?raw', import: 'default', eager: true });
 
@@ -13,7 +14,7 @@ function parse(path, raw) {
     date: meta.date || '',
     author: meta.author || '',
     tags: meta.tags ? meta.tags.split(',').map((s) => s.trim()).filter(Boolean) : [],
-    html: marked.parse(body),
+    html: renderSession(body, COFFEE_PROFILES, text => marked.parse(text)),
   };
 }
 

@@ -63,3 +63,10 @@
 .log-body a { color: var(--red); text-decoration: underline; }
 .log-body code { font-family: var(--mono); font-size: 0.86em; background: var(--bg-2); padding: 0.05em 0.3em; text-shadow: none; }
 
+
+/* Coffee archive and weekly lineups share the society palette. */
+.research .log, .log-card, .log header, .map-key .point-card { border-color: #241a1c; }
+.archive-toolbar { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.archive-toolbar button { color: var(--red); text-decoration: underline; font-family: var(--px); }
+.log-body .coffee-heading { border-top: 1px solid #241a1c; padding-top: .8rem; color: #710318; }
+.log-body .coffee-meta { color: var(--ink); font-size: .92em; }
