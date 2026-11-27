@@ -31,7 +31,7 @@ export default function GlobeStage({ index, points, selectedId, onSelect }) {
     <div ref={stage} inert={!visible} data-layout={layoutPane === TEAM ? 'team' : 'map'} className={`globe-stage pane-motion ${paneClass(layoutPane, index)}`}>
       <Globe active={visible} points={points} color="#710318" fit={FIT} selectedId={selectedId} onSelect={onSelect} sizeRef={sphere} />
       <div className="globe-bars">
-        <RingBars getDiameter={() => sphere.current * 1.04} active={visible} reach={0.1} idleBlocks={1} />
+        <RingBars getDiameter={() => sphere.current * 1.04} active={visible} reach={0.1} replayGlobeMotion />
       </div>
     </div>
   );

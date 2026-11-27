@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react';
-import { isSpotifyPlaying, simulatedLevels } from '../lib/spotify';
+import globeMotion from '../lib/globe-motion.json';
+import { isSpotifyPlaying, simulatedLevels, spotifyPositionMs } from '../lib/spotify';
 
 // Audio bars radiating from a circle (the ASCII logo's ring, the team globe), built from small
 // square blocks so they read like characters. `getDiameter()` returns the circle's size in px each
 // frame; the canvas is centred on it by CSS.
 const BARS = 72; // around the full circle, mirrored left/right
 const RED = '#710318';
+const globeFrames = atob(globeMotion.frames);
 const REACH = 0.26; // default longest bar, as a fraction of the circle's diameter
 
-export default function RingBars({ getDiameter, active, className = 'ring-bars', reach = REACH, idleBlocks = 0 }) {
+export default function RingBars({ getDiameter, active, className = 'ring-bars', reach = REACH, replayGlobeMotion = false }) {
   const canvas = useRef(null);
 
   useEffect(() => {
@@ -29,7 +31,13 @@ export default function RingBars({ getDiameter, active, className = 'ring-bars',
       g.clearRect(0, 0, size, size);
 
       const half = BARS / 2;
-      if (isSpotifyPlaying()) {
+      const playing = isSpotifyPlaying();
+      if (replayGlobeMotion && !playing) return;
+      if (replayGlobeMotion) {
+        // Replay visual levels only. Spotify owns the site's audio.
+        const frame = Math.floor(spotifyPositionMs() * globeMotion.fps / 1000) % (globeFrames.length / half);
+        for (let i = 0; i < half; i++) level[i] = globeFrames.charCodeAt(frame * half + i) / 255;
+      } else if (playing) {
         // Spotify's audio can't be read (lib/spotify.js), so follow its play state with a stand-in beat.
         simulatedLevels(sim);
         for (let i = 0; i < half; i++) level[i] = Math.max(sim[i] * 0.85, level[i] * 0.88);
@@ -44,7 +52,7 @@ export default function RingBars({ getDiameter, active, className = 'ring-bars',
       for (let j = 0; j < BARS; j++) {
         // mirrored: bass at the top, highs meeting at the bottom
         const i = j < half ? j : BARS - 1 - j;
-        const n = Math.max(idleBlocks, Math.floor((level[i] * level[i] * d * reach) / step));
+        const n = Math.floor((level[i] * level[i] * d * reach) / step);
         if (!n) continue;
         const ang = -Math.PI / 2 + ((j + 0.5) / BARS) * Math.PI * 2;
         g.save();
@@ -56,7 +64,7 @@ export default function RingBars({ getDiameter, active, className = 'ring-bars',
     };
     raf = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(raf); g.clearRect(0, 0, cv.width, cv.height); };
-  }, [active, reach, idleBlocks]); // eslint-disable-line react-hooks/exhaustive-deps -- getDiameter reads refs
+  }, [active, reach, replayGlobeMotion]); // eslint-disable-line react-hooks/exhaustive-deps -- getDiameter reads refs
 
   return <canvas ref={canvas} className={className} aria-hidden="true" />;
 }
