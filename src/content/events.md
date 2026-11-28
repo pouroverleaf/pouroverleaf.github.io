@@ -2,8 +2,9 @@
 ---
 
 Extra events on top of the automatic weekly session (Wednesdays, see session.md). One row per event.
-The home page shows whichever comes first, a weekly session or a row here. An event on a Wednesday
-replaces that week's session.
+Set `date` in session.md to move one week's session. Other weeks keep their Wednesday slot.
+The home page shows whichever comes first, a weekly session or a row here. An event on the weekly
+session date replaces that week's session.
 
 - date: YYYY-MM-DD
 - time: e.g. 14:00–16:00 (leave empty for an all-day event)

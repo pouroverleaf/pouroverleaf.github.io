@@ -38,8 +38,7 @@
   .home-art:has(.home-event-img) .home-disc pre { font-size: min(1.5vw, 0.85vh); line-height: min(1.5vw, 0.85vh); }
   .home-art { width: auto; }
   .home-event-img { max-width: 80vw; max-height: 22vh; }
-  .session-wrap { width: 100%; }
-  .session { font-size: 0.95rem; }
+  .session { width: 100%; font-size: 0.95rem; }
 
   /* team: photo across the bottom with the intro over its legs; map: layer key at the top */
   .globe-stage[data-layout="team"] { --globe-y: 2vh; }

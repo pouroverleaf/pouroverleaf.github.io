@@ -3,7 +3,6 @@ import { SESSION, EVENTS } from './content';
 const dayMs = 86400000;
 const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const WEEKDAY = 3; // weekly session: Wednesday
 
 function londonNow() {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
@@ -34,25 +33,21 @@ function describe(day, time, now) {
   };
 }
 
-// The next `count` sessions, soonest first: the automatic weekly session merged with events.md.
-// An event on a weekly-session day replaces that week's session.
-export function getUpcoming(count = 2) {
+export function getNextSession() {
   const now = londonNow();
-  const events = EVENTS.map((e) => {
-    const [y, m, d] = e.date.split('-').map(Number);
-    return { kind: 'event', ...e, where: e.where || SESSION.where, ...describe(Date.UTC(y, m - 1, d) / dayMs, e.time, now) };
-  }).filter((e) => !e.ended);
-  const taken = new Set(events.map((e) => e.day));
+  const [event] = EVENTS.map((e) => ({
+    kind: 'event', ...e, where: e.where || SESSION.where, ...describe(Date.parse(e.date) / dayMs, e.time, now),
+  })).filter((e) => !e.ended).sort((a, b) => a.day - b.day || a.start - b.start);
 
-  const weekly = [];
-  const first = now.day + ((WEEKDAY - new Date(now.day * dayMs).getUTCDay() + 7) % 7);
-  for (let day = first; weekly.length < count; day += 7) {
+  const monday = now.day - (new Date(now.day * dayMs).getUTCDay() + 6) % 7;
+  const override = Date.parse(SESSION.date) / dayMs;
+  for (let week = monday; ; week += 7) {
+    // An explicit date moves only that week's Wednesday session.
+    const day = override >= week && override < week + 7 ? override : week + 2;
+    if (event && event.day <= day) return event;
     const s = describe(day, SESSION.time, now);
-    if (s.ended || taken.has(day)) continue;
-    // session.md's theme and bean describe the coming week only.
-    const thisWeek = weekly.length === 0;
-    weekly.push({ kind: 'weekly', time: SESSION.time, where: SESSION.where, theme: thisWeek ? SESSION.theme : '', bean: thisWeek ? SESSION.bean : {}, image: null, ...s });
+    if (!s.ended && !EVENTS.some((e) => e.date === s.iso)) {
+      return { kind: 'weekly', time: SESSION.time, where: SESSION.where, theme: SESSION.theme, bean: SESSION.bean, image: null, ...s };
+    }
   }
-
-  return [...events, ...weekly].sort((a, b) => a.day - b.day || a.start - b.start).slice(0, count);
 }

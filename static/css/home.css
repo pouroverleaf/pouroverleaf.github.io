@@ -42,17 +42,11 @@
   animation: fade 0.4s var(--ease);
 }
 
-.session-wrap { width: min(34rem, 100%); }
-.session { font-size: 1rem; animation: fade 0.35s var(--ease); }
+.session { width: min(34rem, 100%); font-size: 1rem; }
 .session p + p { margin-top: 0.35rem; }
 .session .session-title { font-family: var(--px); font-size: 1.25rem; color: var(--ink); }
 .session .rel { color: var(--red); }
 .session .rel.live::before { content: "● "; }
-/* cooldown bar: fills while a session is shown, then the box moves to the next one */
-.session-timer { height: 3px; margin: 0.6rem 4px 0; background: var(--line-2); border-radius: 2px; overflow: hidden; }
-.session-timer i { display: block; height: 100%; background: var(--red); transform-origin: left; animation: timer linear forwards; }
-.session-wrap:hover .session-timer i { animation-play-state: paused; }
-@keyframes timer { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .cue {
   position: fixed;

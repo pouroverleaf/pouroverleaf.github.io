@@ -43,6 +43,7 @@ export const HOME = { lines: homeMd.trim().split('\n') };
 // session.md
 const sm = parseFront(sessionMd).meta;
 export const SESSION = {
+  date: sm.date,
   time: sm.time,
   where: sm.where,
   theme: sm.theme,

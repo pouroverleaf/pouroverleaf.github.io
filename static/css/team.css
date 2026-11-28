@@ -48,6 +48,7 @@
 
 .point-card { font-size: 1rem; }
 .point-card strong { display: block; padding-right: 1.2rem; margin-bottom: 0.15rem; }
+.point-card a { color: var(--red); text-decoration: underline; }
 .point-card .close { position: absolute; top: 0.3rem; right: 0.7rem; font-size: 1.1rem; color: var(--mute); text-shadow: none; }
 
 

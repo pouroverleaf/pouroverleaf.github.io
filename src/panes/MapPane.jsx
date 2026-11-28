@@ -1,18 +1,13 @@
-import { coffeeHeading } from '../lib/coffee-format';
 import { LAYERS } from '../lib/content';
 
 function PointCard({ p, onClose }) {
+  const url = p.source || p.reference || `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
   return (
     <div className="point-card box">
       <button type="button" className="close" onClick={onClose} aria-label="close">×</button>
-      <strong>{p.name}</strong>
-      <p>
-        {p.process ? <>{p.process} {p.variety} <span className="bar">|</span> </> : null}{p.place}.
-        {p.notes && <> <span className="notes">{p.notes}.</span></>}
-        {p.altitude && <> <span className="fine">{p.altitude}.</span></>}
-        {p.note && !p.notes && <> {p.note}</>}
-      </p>
-      {p.coffees?.length > 0 && <ul>{p.coffees.map(c => <li key={c.id}>{coffeeHeading(c)}{c.region && ` · ${c.region}`}</li>)}</ul>}
+      <strong><a href={url} target="_blank" rel="noreferrer">{p.name}</a></strong>
+      {p.place && <p>{p.place}</p>}
+      {p.map_note && <p>{p.map_note}</p>}
     </div>
   );
 }
